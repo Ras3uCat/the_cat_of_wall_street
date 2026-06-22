@@ -30,3 +30,11 @@ logs/account_state.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Web app
+app/node_modules/
+app/.next/
+app/.open-next/
+app/.vercel/
+app/*.tsbuildinfo
+app/next-env.d.ts
