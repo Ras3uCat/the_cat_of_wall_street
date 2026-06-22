@@ -1,7 +1,4 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Required for @opennextjs/cloudflare
-  output: 'standalone',
-}
+const nextConfig = {}
 
 export default nextConfig
