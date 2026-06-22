@@ -32,9 +32,9 @@ logs/account_state.json
 Thumbs.db
 
 # Web app
-app/node_modules/
-app/.next/
-app/.open-next/
-app/.vercel/
-app/*.tsbuildinfo
-app/next-env.d.ts
+webapp/node_modules/
+webapp/.next/
+webapp/.open-next/
+webapp/.vercel/
+webapp/*.tsbuildinfo
+webapp/next-env.d.ts
