@@ -445,12 +445,24 @@ print(len(result.data))
 ```
 Use this count + 1 as NNN (zero-padded to 3 digits) in the prediction ID.
 
-**Log the prediction:**
+**Step 1 — Write the debate narrative to a temp file** (do this before logging):
+```bash
+cat > /tmp/debate_narrative.txt << 'DEBATE_EOF'
+[Paste the complete debate output here — all 7 agent sections verbatim,
+from FUNDAMENTAL ANALYST through TRADER SYNTHESIZER including
+the confidence score breakdown and final recommendation.]
+DEBATE_EOF
+```
+
+**Step 2 — Log the prediction:**
 ```bash
 .venv/bin/python -c "
 import sys; sys.path.insert(0, 'system/data')
 from dotenv import load_dotenv; load_dotenv()
-import db
+import db, json
+debate_narrative = open('/tmp/debate_narrative.txt').read()
+import account; state = account.read_state()
+equity = state.get('equity', 0.0) if state else 0.0
 db.insert_prediction({
     'id': 'pred_YYYYMMDD_NNN',
     'ticker': 'TICKER',
@@ -475,11 +487,47 @@ db.insert_prediction({
     'vix_at_prediction': XX.X,
     'market_regime': 'low',               # vix regime string
     'executed': True/False,
-    'skip_reason': None,                  # or reason string
+    'skip_reason': None,                  # or reason string; 'learning_period' during learning window
     'entry_price': XX.XX,                 # null if skipped
     'entry_date': 'YYYY-MM-DD',          # null if skipped
     'position_size_pct': X.X,            # null if skipped
+    # New fields:
+    'approval_status': 'pending',         # 'pending' for ENTER proposals; omit (None) for skips
+    'equity_at_entry': equity,            # always set — used for P&L math in the web app
+    'debate_narrative': debate_narrative, # full 7-agent debate text
 })
+"
+```
+
+**Step 3 — Notify the web app (ENTER proposals only):**
+
+After logging any ENTER proposal (regardless of learning period), call the notify endpoint so Ryan receives a push notification:
+```bash
+import os
+NOTIFY_SECRET = os.getenv('NOTIFY_SECRET', '')
+TICKER = 'TICKER'
+CONFIDENCE = NN
+PRED_ID = 'pred_YYYYMMDD_NNN'
+
+curl -s -X POST https://thecatofwallstreet.skyjumper32.workers.dev/api/notify \
+  -H "Content-Type: application/json" \
+  -H "x-notify-secret: ${NOTIFY_SECRET}" \
+  -d "{\"ticker\": \"${TICKER}\", \"confidence\": ${CONFIDENCE}, \"prediction_id\": \"${PRED_ID}\"}"
+```
+
+Or inline in Python/bash:
+```bash
+.venv/bin/python -c "
+import urllib.request, json, os
+from dotenv import load_dotenv; load_dotenv()
+req = urllib.request.Request(
+    'https://thecatofwallstreet.skyjumper32.workers.dev/api/notify',
+    data=json.dumps({'ticker': 'TICKER', 'confidence': NN, 'prediction_id': 'pred_YYYYMMDD_NNN'}).encode(),
+    headers={'Content-Type': 'application/json', 'x-notify-secret': os.getenv('NOTIFY_SECRET','')},
+    method='POST'
+)
+urllib.request.urlopen(req, timeout=10)
+print('Notification sent.')
 "
 ```
 

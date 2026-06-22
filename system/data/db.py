@@ -113,6 +113,9 @@ def insert_prediction(prediction: dict) -> bool:
         "entry_price": prediction.get("entry_price"),
         "entry_date": prediction.get("entry_date"),
         "position_size_pct": prediction.get("position_size_pct"),
+        "approval_status": prediction.get("approval_status"),
+        "equity_at_entry": prediction.get("equity_at_entry"),
+        "debate_narrative": prediction.get("debate_narrative"),
     }
 
     try:
