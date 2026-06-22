@@ -1,0 +1,29 @@
+# Environment
+.env
+.env.*
+
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Data cache (ephemeral — regenerated each session)
+logs/data_cache/
+
+# Scan packets (stored in Supabase; local copies are disposable)
+logs/predictions/scan_*.json
+
+# Keep directory structure
+!logs/.gitkeep
+!logs/data_cache/.gitkeep
+!logs/predictions/.gitkeep
+!logs/reviews/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,125 @@
+# Gap Analysis — AI Trading System Strategy
+
+**Source:** Review of `ai-trading-system-strategy.md`, June 2026  
+**Status:** Active — gaps being addressed in strategy doc updates
+
+Each gap below links to a future `01_active/` feature or is resolved in the strategy doc.
+
+---
+
+## Critical
+
+### GAP-01: Data Infrastructure / Pipeline Unanswered
+The strategy lists data sources (Quiver Quantitative, Unusual Whales, SEC EDGAR, USASpending.gov, etc.) but has no plan for:
+- How Claude actually fetches this data (MCP tools? Web search? Paid API subscriptions?)
+- API costs, rate limits, availability SLAs
+- Fallback behavior when a source is unavailable mid-session
+- Latency guarantees per source — dark pool/options flow alpha decays in hours, not days
+
+**Next step:** Dedicated feature — data pipeline design, API selection, cost estimate.
+
+---
+
+### GAP-02: Universe Selection Missing
+Without a defined stock universe, signal scanning is unbounded and will generate noise on illiquid or unsuitable names.
+
+**Resolved in strategy doc:** Section 2.6 added.  
+Criteria: 500K+ ADV, $500M+ market cap, no earnings within 3 days, no wash-sale conflicts, no PDT-risky tickers.
+
+---
+
+## High
+
+### GAP-03: Signal Staleness Thresholds Undefined
+A dark pool print from 4 hours ago is different from one from 3 days ago. No definition of maximum signal age before discard, per signal type.
+
+**Next step:** Add staleness thresholds per signal type in strategy doc (varies by alpha decay window — options flow: hours; politician trades: days).
+
+---
+
+### GAP-04: Convergence Score Underspecified
+Section 4.1 tracks "how many independent signals agreed" but:
+- No defined minimum to enter the debate phase vs. discard
+- No weighting between signal types
+- Risk of retroactively cherry-picking which signals "fired"
+
+**Resolved in strategy doc:** Section 3.5 (Confidence Score Gate) defines convergence component (0–30 pts) with weights updated weekly from prediction log. Minimum convergence = 2 independent categories.
+
+---
+
+### GAP-05: Freeform Lessons Can't Drive Systematic Changes
+The `"lessons"` field in prediction records is freeform text. No mechanism converts lessons into actual signal weight changes systematically.
+
+**Resolved in strategy doc:** Section 5 updated — weight changes are proposed by Claude as structured recommendations (not freeform), require explicit human approval, and require ≥30 resolved predictions for the relevant signal combo before any change is adopted.
+
+---
+
+### GAP-06: No Human Approval Gate on Self-Improvement Changes
+Monthly review proposed Claude auto-applying updated signal weights and risk parameters. Silent drift in these parameters is a blowup risk.
+
+**Resolved in strategy doc:** Section 5 updated — all weight and parameter changes require explicit human approval before going live.
+
+---
+
+## Medium
+
+### GAP-07: No Benchmark Defined
+A profitable year in a bull market may still represent underperformance. No baseline to measure against.
+
+**Next step:** Add to strategy doc — benchmark: SPY total return; performance metric: Sharpe ratio (risk-adjusted); review threshold: two consecutive months of underperformance triggers strategy review.
+
+---
+
+### GAP-08: Politician Trade 45-Day Lag Needs Reframing
+The STOCK Act disclosure lag means this signal is public knowledge by the time it's actionable, and many traders act on it simultaneously. The edge has decayed significantly since ~2021.
+
+**Resolved in strategy doc:** Section 2.1 updated — politician trade classified as confirmation signal only, never a primary trigger.
+
+---
+
+### GAP-09: Earnings Calendar Integration Missing
+Section 6.4 says to avoid binary events, but there's no mechanism for the agent to know when earnings are scheduled — for new entries or for existing positions.
+
+**Next step:** Dedicated feature — earnings calendar feed integration (earnings date must be a first-class data field in universe selection and ongoing position monitoring).
+
+---
+
+### GAP-10: Cold Start Behavior Under $5K Not Addressed
+At $50–$300, most institutional signals are tracking activity far larger than the account. PDT rule is a near-constant constraint under $25K. Position sizes are trivially small.
+
+**Resolved in strategy doc:** Section 3.5 adds `cold_start` flag and raised thresholds during cold start. Section 12 (Next Steps) explicitly scopes early phase as data collection, not returns optimization.
+
+---
+
+## Low
+
+### GAP-11: Options Scope Unclear
+The system uses options flow as a signal. It is not stated whether the system will also trade options, or is equity-only.
+
+**Next step:** Add explicit scope statement to strategy doc — equities only in v1; options trading is out of scope until the system has a track record and appropriate Robinhood approval tier.
+
+---
+
+### GAP-12: Short Selling Scope Unclear
+The multi-agent debate includes a bearish debater, but it's unstated whether the system can short. Robinhood shorting requires margin.
+
+**Next step:** Add explicit scope statement — long-only in v1. Bearish agent's role is "don't enter" or "exit existing position," not "short it."
+
+---
+
+## Resolution Tracking
+
+| Gap | Status |
+|---|---|
+| GAP-01 Data pipeline | Open — needs dedicated feature |
+| GAP-02 Universe selection | Resolved in strategy doc §2.6 |
+| GAP-03 Signal staleness | Open — needs per-signal thresholds |
+| GAP-04 Convergence score | Resolved in strategy doc §3.5 |
+| GAP-05 Freeform lessons | Resolved in strategy doc §5 |
+| GAP-06 Human approval gate | Resolved in strategy doc §5 |
+| GAP-07 Benchmark | Open — add to strategy doc |
+| GAP-08 Politician trade lag | Resolved in strategy doc §2.1 |
+| GAP-09 Earnings calendar | Open — needs dedicated feature |
+| GAP-10 Cold start | Resolved in strategy doc §3.5, §12 |
+| GAP-11 Options scope | Open — add scope statement |
+| GAP-12 Short selling scope | Open — add scope statement |

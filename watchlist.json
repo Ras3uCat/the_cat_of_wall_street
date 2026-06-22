@@ -1,0 +1,9 @@
+{
+  "default": ["NVDA", "AAPL", "MSFT", "PLTR", "AMZN", "META", "GOOGL", "AMD", "TSLA", "ORCL"],
+  "notes": {
+    "NVDA": "AI/compute — high gov contract + options flow signal history",
+    "PLTR": "Gov contract-heavy; strong EDGAR signal source",
+    "AMD": "AI/compute; tracks NVDA signals with lag",
+    "ORCL": "Cloud + gov contracts; often quiet then catalyzed"
+  }
+}
