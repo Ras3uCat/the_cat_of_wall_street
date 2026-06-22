@@ -36,7 +36,8 @@ python3 -m venv .venv
 .venv/bin/pip install -r system/data/requirements.txt
 ```
 
-Run all scripts using `.venv/bin/python` from the project root, or activate the venv first:
+Run all scripts using `.venv/bin/python` from the pr
+oject root, or activate the venv first:
 
 ```bash
 source .venv/bin/activate

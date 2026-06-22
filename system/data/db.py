@@ -123,6 +123,22 @@ def insert_prediction(prediction: dict) -> bool:
         return False
 
 
+def update_prediction(prediction_id: str, fields: dict) -> bool:
+    """
+    Partial update of a prediction record. Used to write debate_narrative,
+    approval_status, equity_at_entry, or any other field post-insert.
+    """
+    client = get_client()
+    if not client:
+        return False
+    try:
+        client.table("predictions").update(fields).eq("id", prediction_id).execute()
+        return True
+    except Exception as e:
+        print(f"[db] update_prediction failed: {e}")
+        return False
+
+
 def resolve_prediction(prediction_id: str, resolution: dict) -> bool:
     """
     Update a prediction record with outcome data once the timeframe expires.
