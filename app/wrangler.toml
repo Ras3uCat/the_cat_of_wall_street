@@ -6,3 +6,8 @@ main = ".open-next/worker.js"
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
+
+[vars]
+SUPABASE_URL = "https://ypokkuswzbzgmdzcvksf.supabase.co"
+VAPID_PUBLIC_KEY = "BBg07RSLW-kAvl5w76aJhXb9MlMr-OOhTTn6CvhpRERAAKzKy7n01vkzCcmy7bhhvaiJsgEMZ5Q3qI6d_C4z1DM"
+VAPID_SUBJECT = "mailto:skyjumper32@gmail.com"

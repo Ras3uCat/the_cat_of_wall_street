@@ -16,6 +16,9 @@
 # production
 /build
 
+# OpenNext / Cloudflare build output
+/.open-next/
+
 # misc
 .DS_Store
 *.pem

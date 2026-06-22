@@ -4,7 +4,9 @@ let _client: SupabaseClient | null = null
 
 function getClient(): SupabaseClient {
   if (!_client) {
-    _client = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!)
+    const url = process.env.SUPABASE_URL ?? 'https://placeholder.supabase.co'
+    const key = process.env.SUPABASE_SERVICE_KEY ?? 'placeholder'
+    _client = createClient(url, key)
   }
   return _client
 }

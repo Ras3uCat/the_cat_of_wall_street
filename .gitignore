@@ -31,10 +31,4 @@ logs/account_state.json
 .DS_Store
 Thumbs.db
 
-# Web app
-webapp/node_modules/
-webapp/.next/
-webapp/.open-next/
-webapp/.vercel/
-webapp/*.tsbuildinfo
-webapp/next-env.d.ts
+# Web app (build artifacts handled by app/.gitignore)

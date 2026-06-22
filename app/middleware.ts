@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/api/notify', '/api/subscribe', '/manifest.json', '/sw.js', '/icon-192.png', '/icon-512.png']
+const PUBLIC_PATHS = ['/login', '/api/notify', '/api/subscribe', '/api/health', '/manifest.json', '/sw.js', '/icon-192.png', '/icon-512.png']
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
   if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) return NextResponse.next()
 
   const session = req.cookies.get('cws_session')?.value
-  if (session !== process.env.APP_PASSWORD) {
+  if (!process.env.APP_PASSWORD || session !== process.env.APP_PASSWORD) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
   return NextResponse.next()
