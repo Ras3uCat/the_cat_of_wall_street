@@ -12,7 +12,9 @@ This is the data layer for the Cat of Wall Street trading system. It feeds struc
 
 ```bash
 cd /path/to/the_cat_of_wall_street
-python system/data/run_daily_scan.py --watchlist NVDA AAPL MSFT PLTR --account-json account.json
+python system/data/run_daily_scan.py
+# or with a custom watchlist:
+python system/data/run_daily_scan.py --watchlist NVDA AAPL MSFT PLTR
 ```
 
 1. The orchestrator fetches the macro snapshot first. If `macro_go: false`, it prints the reason and no further scanning occurs.
@@ -61,7 +63,8 @@ If `EDGAR_USER_AGENT` is not set, a default is used. SEC policy requires a valid
 
 **CLI:**
 ```bash
-python run_daily_scan.py --watchlist NVDA AAPL --account-json account.json
+python run_daily_scan.py                          # uses watchlist.json
+python run_daily_scan.py --watchlist NVDA AAPL    # override tickers
 ```
 
 **When to run:** Once per session, before initiating any debate. Re-running the same day hits the cache for most sources.
@@ -302,13 +305,117 @@ python technicals.py --ticker NVDA
 |---|---|---|
 | ADV ≥ 500K shares/day | 30-day trailing average | Below this, you cannot exit a position without significant slippage on a small account. Institutional signals also often apply to stocks with higher liquidity. |
 | Market cap ≥ $500M | Current | Micro-caps are susceptible to manipulation, have thin options markets, and institutional signals are less applicable. The $500M floor puts us in "small cap" and above. |
-| No earnings within 3 days | Calendar days | Earnings are binary events. A stop-loss order cannot protect against a gap open that occurs before market open — if the stock gaps 20% down on earnings, your stop at -5% doesn't execute at -5%. |
-| No wash sale conflict | 30-day lookback in prediction log | IRS Section 1091: if you sell at a loss and repurchase the same (or substantially identical) security within 30 days before or after, the tax loss is disallowed. This check prevents accidentally triggering the rule. |
-| PDT compliance | < 3 day trades in 5 business days (if equity < $25K) | Pattern Day Trader restriction: 4+ round-trip same-day trades within 5 business days triggers a 90-day restriction on day trading. This is catastrophic for a small active account. |
+| No earnings within 3 days | Calendar days | Earnings are binary events. A stop-loss order cannot protect against a gap open that occurs before market open — if the stock gaps 20% down on earnings, your stop at -5% doesn't execute at -5%. Powered by `fetch_earnings_calendar.py` — `unknown` confidence is treated as `earnings_clear: false` (conservative block). |
+| No wash sale conflict | 30-day lookback in Supabase | IRS Section 1091: if you sell at a loss and repurchase the same (or substantially identical) security within 30 days before or after, the tax loss is disallowed. This check prevents accidentally triggering the rule. |
+| PDT compliance | < 3 day trades in 5 business days (margin accounts with equity < $25K only) | PDT rule applies to margin accounts only — the Agentic account is a cash account and is not subject to this restriction. Check is skipped if `account_state.json` is not present. |
 
 **CLI:**
 ```bash
-python universe_check.py --ticker NVDA --account-json account.json
+python universe_check.py --ticker NVDA
+```
+
+---
+
+### `fetch_earnings_calendar.py` — Earnings Date Lookup
+
+**Sources (in priority order):**
+1. `yfinance .calendar` — primary; returns estimated next earnings date
+2. EDGAR 8-K Item 2.02 cross-check — if a recent earnings filing was found, next earnings can be inferred as ~90 days out, increasing confidence
+
+**Confidence levels:**
+
+| Level | Meaning |
+|---|---|
+| `confirmed` | yfinance date + EDGAR cross-check agree |
+| `estimated` | yfinance date returned; no EDGAR cross-check available |
+| `unknown` | No date returned — treated as `earnings_clear: false` |
+
+`unknown` is treated conservatively as blocked, not clear. A missed earnings date on an open position can produce a gap that bypasses a stop-loss entirely.
+
+**Output fields:**
+
+| Field | Meaning |
+|---|---|
+| `earnings_clear` | `true` if no earnings within `EARNINGS_BUFFER_DAYS` (default: 3) |
+| `next_earnings` | ISO date of next earnings, or `null` |
+| `days_out` | Calendar days until next earnings |
+| `confidence` | `confirmed` / `estimated` / `unknown` |
+
+**CLI:**
+```bash
+python fetch_earnings_calendar.py --ticker NVDA
+```
+
+---
+
+### `account.py` — Account State Bridge
+
+This is the bridge between the Robinhood MCP (Claude-only) and the Python data pipeline (subprocess-based). Claude fetches live account data via MCP at session start, writes it to `logs/account_state.json`, and the Python pipeline reads from there.
+
+**The file is never committed to git** — it is ephemeral and must be refreshed each session.
+
+**State written by Claude:**
+```json
+{
+  "fetched_at": "2026-06-22T09:30:00",
+  "equity": 5000.00,
+  "buying_power": 4200.00,
+  "day_trades_used_5d": 1,
+  "positions": [
+    { "ticker": "NVDA", "shares": 5, "avg_cost": 138.50, "current_value": 720.00, "stop_loss_pct": 4.0 }
+  ]
+}
+```
+
+**Functions used by the pipeline:**
+
+| Function | Used by |
+|---|---|
+| `load()` | All — raises `FileNotFoundError` if missing, `AccountStateError` if > 30 min old |
+| `get_equity()` | Risk Manager heat calculations |
+| `get_buying_power()` | Order sizing |
+| `get_day_trade_count()` | PDT check in `universe_check.py` |
+| `get_positions()` | Portfolio heat, sector concentration |
+| `get_portfolio_heat()` | Risk Manager role — total heat as % of equity |
+| `get_sector_concentration()` | Risk Manager role — heat per GICS sector |
+| `write_state(dict)` | Called by Claude after fetching from Robinhood MCP |
+
+**Verify state is fresh:**
+```bash
+python system/data/account.py
+```
+
+---
+
+### `db.py` — Supabase Client
+
+Wraps all Supabase operations. Every other module that needs the database imports from here — nothing calls Supabase directly.
+
+**Key functions:**
+
+| Function | Purpose |
+|---|---|
+| `get_client()` | Returns initialized Supabase client (or `None` if env vars missing) |
+| `upsert_scan(packet)` | Writes the daily scan summary to the `scans` table |
+| `insert_prediction(dict)` | Logs a debate outcome (executed or skipped) to `predictions` |
+| `resolve_prediction(id, dict)` | Updates a prediction with exit outcome data |
+| `wash_sale_check(ticker)` | RPC call — checks for loss sales within 30 days |
+| `get_signal_accuracy()` | Reads the `signal_accuracy` view for weekly review |
+| `get_confidence_calibration()` | Reads the `confidence_score_calibration` view for monthly review |
+
+Falls back gracefully to local JSON if Supabase is not configured — the pipeline works offline, but prediction tracking and wash-sale checking are disabled.
+
+**`resolve_prediction` fields (as of current schema):**
+```python
+db.resolve_prediction('pred_20260622_001', {
+    'exit_price': 152.30,
+    'exit_date': '2026-06-22',
+    'exit_reason': 'stop_loss',   # stop_loss | target_hit | timeframe_expired | thesis_invalidated | manual_exit
+    'actual_move_pct': -3.8,
+    'direction_correct': False,
+    'accuracy_score': 20,
+    'lessons': 'One sentence.',
+})
 ```
 
 ---
