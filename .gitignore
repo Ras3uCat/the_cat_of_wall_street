@@ -18,6 +18,9 @@ logs/data_cache/
 # Scan packets (stored in Supabase; local copies are disposable)
 logs/predictions/scan_*.json
 
+# Account state (fetched via MCP each session — not persisted to git)
+logs/account_state.json
+
 # Keep directory structure
 !logs/.gitkeep
 !logs/data_cache/.gitkeep

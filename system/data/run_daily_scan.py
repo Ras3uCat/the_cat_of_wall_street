@@ -50,8 +50,8 @@ DARK_POOL_SIGNAL = {
 }
 
 
-def _scan_ticker(ticker: str, account_json: str | None) -> dict:
-    gate = universe_check.check(ticker, account_json)
+def _scan_ticker(ticker: str) -> dict:
+    gate = universe_check.check(ticker)
     if not gate["eligible"]:
         return {"ticker": ticker, "eligible": False, "fail_reasons": gate["fail_reasons"]}
 
@@ -99,7 +99,7 @@ def _scan_ticker(ticker: str, account_json: str | None) -> dict:
     }
 
 
-def run(watchlist: list[str], account_json: str | None) -> dict:
+def run(watchlist: list[str]) -> dict:
     # Step 1: Macro gate — if macro is not go, halt
     macro = fetch_macro.fetch()
     if macro.get("status") == "error":
@@ -113,7 +113,7 @@ def run(watchlist: list[str], account_json: str | None) -> dict:
     ticker_results = []
     for ticker in watchlist:
         print(f"  Scanning {ticker}...", flush=True)
-        result = _scan_ticker(ticker.upper(), account_json)
+        result = _scan_ticker(ticker.upper())
         ticker_results.append(result)
 
     debate_candidates = [r for r in ticker_results if r.get("proceed_to_debate")]
@@ -186,7 +186,6 @@ def _print_summary(packet: dict) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--watchlist", nargs="+", default=None, help="Tickers to scan (omit to use watchlist.json)")
-    parser.add_argument("--account-json", default=None, help="Path to Robinhood account JSON (for PDT check)")
     args = parser.parse_args()
 
     watchlist = args.watchlist or _load_default_watchlist()
@@ -195,5 +194,5 @@ if __name__ == "__main__":
         sys.exit(1)
 
     print(f"Running daily scan for: {', '.join(watchlist)}")
-    packet = run(watchlist, args.account_json)
+    packet = run(watchlist)
     _print_summary(packet)

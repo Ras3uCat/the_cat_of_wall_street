@@ -11,14 +11,14 @@ Checks:
 """
 import argparse
 import json
-import os
 import sys
 from datetime import date, timedelta
 from pathlib import Path
 import yfinance as yf
 import cache
 import db
-from config import MIN_ADV, MIN_MARKET_CAP, EARNINGS_BUFFER_DAYS, PDT_DAY_TRADE_LIMIT, PREDICTIONS_DIR
+import fetch_earnings_calendar
+from config import MIN_ADV, MIN_MARKET_CAP, PDT_DAY_TRADE_LIMIT, PREDICTIONS_DIR
 
 
 def _check_adv(ticker: str) -> dict:
@@ -46,41 +46,15 @@ def _check_market_cap(ticker: str) -> dict:
 
 
 def _check_earnings(ticker: str) -> dict:
-    try:
-        cal = yf.Ticker(ticker).calendar
-        if cal is None or cal.empty:
-            return {"ok": True, "next_earnings": None, "days_out": None,
-                    "note": "No earnings date found — treating as clear"}
-        # Calendar has 'Earnings Date' column
-        earnings_dates = cal.get("Earnings Date") if hasattr(cal, "get") else None
-        if earnings_dates is None and hasattr(cal, "columns"):
-            # DataFrame format
-            if "Earnings Date" in cal.columns:
-                earnings_dates = cal["Earnings Date"].dropna().tolist()
-        if not earnings_dates:
-            return {"ok": True, "next_earnings": None, "days_out": None}
-
-        today = date.today()
-        future = sorted(
-            d.date() if hasattr(d, "date") else date.fromisoformat(str(d)[:10])
-            for d in (earnings_dates if isinstance(earnings_dates, list) else [earnings_dates])
-            if d is not None
-        )
-        future = [d for d in future if d >= today]
-        if not future:
-            return {"ok": True, "next_earnings": None, "days_out": None}
-        next_e = future[0]
-        days_out = (next_e - today).days
-        ok = days_out > EARNINGS_BUFFER_DAYS
-        return {
-            "ok": ok,
-            "next_earnings": next_e.isoformat(),
-            "days_out": days_out,
-            "reason": None if ok else f"Earnings in {days_out} day(s) — within {EARNINGS_BUFFER_DAYS}-day buffer"
-        }
-    except Exception as e:
-        return {"ok": True, "next_earnings": None, "days_out": None,
-                "note": f"Could not fetch earnings calendar: {e} — treating as clear"}
+    result = fetch_earnings_calendar.fetch(ticker)
+    return {
+        "ok": result["earnings_clear"],
+        "next_earnings": result.get("next_earnings"),
+        "days_out": result.get("days_out"),
+        "confidence": result.get("confidence"),
+        "source": result.get("source"),
+        "reason": result.get("note") if not result["earnings_clear"] else None,
+    }
 
 
 def _check_wash_sale(ticker: str) -> dict:
@@ -142,45 +116,46 @@ def _check_wash_sale(ticker: str) -> dict:
                 "note": f"Wash sale check failed: {e} — treating as clear"}
 
 
-def _check_pdt(account_json_path: str | None) -> dict:
+def _check_pdt() -> dict:
     """
-    Checks current day-trade count from account data (passed in from Robinhood MCP).
-    If no account data is provided, returns a warning but doesn't block.
+    Checks current day-trade count from logs/account_state.json (written by Claude
+    from the Robinhood MCP at session start). Warns but does not block if missing.
     PDT rule: max 3 round-trip day trades within any 5 business days if equity < $25K.
     """
-    if not account_json_path:
-        return {
-            "ok": True,
-            "day_trades_used": None,
-            "limit": PDT_DAY_TRADE_LIMIT,
-            "note": "No account data provided — PDT check skipped. Pass --account-json to enable."
-        }
     try:
-        account = json.loads(Path(account_json_path).read_text())
-        equity = account.get("equity", 0)
+        import account as acct
+        state = acct.load()
+        equity = state.get("equity", 0)
         if equity >= 25_000:
             return {"ok": True, "note": "Account equity >= $25K — PDT rule does not apply", "equity": equity}
-        day_trades_used = account.get("day_trades_used_5d", 0)
+        day_trades_used = state.get("day_trades_used_5d", 0)
         ok = day_trades_used < PDT_DAY_TRADE_LIMIT
         return {
             "ok": ok,
             "day_trades_used": day_trades_used,
             "limit": PDT_DAY_TRADE_LIMIT,
             "equity": equity,
-            "reason": None if ok else f"Day trade limit reached ({day_trades_used}/{PDT_DAY_TRADE_LIMIT}) — entering and exiting today would trigger PDT restriction"
+            "reason": None if ok else f"Day trade limit reached ({day_trades_used}/{PDT_DAY_TRADE_LIMIT}) — entering and exiting today would trigger PDT restriction",
+        }
+    except FileNotFoundError:
+        return {
+            "ok": True,
+            "day_trades_used": None,
+            "limit": PDT_DAY_TRADE_LIMIT,
+            "note": "logs/account_state.json not found — PDT check skipped. Claude must fetch account state via Robinhood MCP at session start.",
         }
     except Exception as e:
-        return {"ok": True, "note": f"Could not parse account file: {e} — PDT check skipped"}
+        return {"ok": True, "note": f"PDT check failed: {e} — skipped"}
 
 
-def check(ticker: str, account_json_path: str | None = None) -> dict:
+def check(ticker: str) -> dict:
     ticker = ticker.upper()
 
     adv = _check_adv(ticker)
     mktcap = _check_market_cap(ticker)
     earnings = _check_earnings(ticker)
     wash = _check_wash_sale(ticker)
-    pdt = _check_pdt(account_json_path)
+    pdt = _check_pdt()
 
     checks = {
         "adv": adv,
@@ -206,6 +181,5 @@ def check(ticker: str, account_json_path: str | None = None) -> dict:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ticker", required=True)
-    parser.add_argument("--account-json", default=None, help="Path to account JSON from Robinhood MCP")
     args = parser.parse_args()
-    print(json.dumps(check(args.ticker, args.account_json), indent=2))
+    print(json.dumps(check(args.ticker), indent=2))

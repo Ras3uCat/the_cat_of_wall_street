@@ -80,7 +80,7 @@ The STOCK Act disclosure lag means this signal is public knowledge by the time i
 ### GAP-09: Earnings Calendar Integration Missing
 Section 6.4 says to avoid binary events, but there's no mechanism for the agent to know when earnings are scheduled — for new entries or for existing positions.
 
-**Next step:** Dedicated feature — earnings calendar feed integration (earnings date must be a first-class data field in universe selection and ongoing position monitoring).
+**Resolved:** `system/data/fetch_earnings_calendar.py` created — yfinance primary source + EDGAR 8-K Item 2.02 cross-check. `unknown` confidence treated as `earnings_clear: false` (conservative block). Integrated into `universe_check.py`.
 
 ---
 
@@ -111,7 +111,7 @@ The multi-agent debate includes a bearish debater, but it's unstated whether the
 
 | Gap | Status |
 |---|---|
-| GAP-01 Data pipeline | Open — needs dedicated feature |
+| GAP-01 Data pipeline | Resolved — free-tier Python pipeline in `system/data/` |
 | GAP-02 Universe selection | Resolved in strategy doc §2.6 |
 | GAP-03 Signal staleness | Open — needs per-signal thresholds |
 | GAP-04 Convergence score | Resolved in strategy doc §3.5 |
@@ -119,7 +119,7 @@ The multi-agent debate includes a bearish debater, but it's unstated whether the
 | GAP-06 Human approval gate | Resolved in strategy doc §5 |
 | GAP-07 Benchmark | Open — add to strategy doc |
 | GAP-08 Politician trade lag | Resolved in strategy doc §2.1 |
-| GAP-09 Earnings calendar | Open — needs dedicated feature |
+| GAP-09 Earnings calendar | Resolved — `fetch_earnings_calendar.py` + EDGAR cross-check |
 | GAP-10 Cold start | Resolved in strategy doc §3.5, §12 |
 | GAP-11 Options scope | Open — add scope statement |
 | GAP-12 Short selling scope | Open — add scope statement |

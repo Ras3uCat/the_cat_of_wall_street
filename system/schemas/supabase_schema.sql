@@ -69,6 +69,7 @@ create table if not exists predictions (
   resolved                    boolean default false,
   exit_price                  numeric,
   exit_date                   date,
+  exit_reason                 text check (exit_reason in ('stop_loss','target_hit','timeframe_expired','thesis_invalidated','manual_exit')),
   actual_move_pct             numeric,
   direction_correct           boolean,
   accuracy_score              integer,                -- 0–100
