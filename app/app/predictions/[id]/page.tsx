@@ -5,11 +5,21 @@ import type { Prediction } from '@/lib/types'
 import ApproveButtons from '@/components/ApproveButtons'
 
 const COMPONENT_LABELS: Record<string, string> = {
-  convergence: 'Signal Convergence',
-  debate: 'Debate Outcome',
-  regime: 'Market Regime',
-  historical: 'Historical Accuracy',
-  risk_mgr: 'Risk Manager',
+  convergence: 'CONVERGENCE',
+  debate:      'DEBATE',
+  regime:      'REGIME',
+  historical:  'HISTORICAL',
+  risk_mgr:    'RISK MGR',
+}
+
+function SegBar({ value, max }: { value: number; max: number }) {
+  const SEGS   = 10
+  const filled = Math.round((value / max) * SEGS)
+  return (
+    <span className="font-mono text-brand-cyan text-xs tracking-[0.1em]">
+      {'[' + '■'.repeat(filled) + '□'.repeat(SEGS - filled) + ']'}
+    </span>
+  )
 }
 
 export default async function PredictionDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -21,153 +31,156 @@ export default async function PredictionDetail({ params }: { params: Promise<{ i
   const afterTax = p.predicted_move_pct != null ? p.predicted_move_pct * 0.70 : null
   const components = [
     { key: 'convergence', val: p.confidence_component_convergence },
-    { key: 'debate', val: p.confidence_component_debate },
-    { key: 'regime', val: p.confidence_component_regime },
-    { key: 'historical', val: p.confidence_component_historical },
-    { key: 'risk_mgr', val: p.confidence_component_risk_mgr },
+    { key: 'debate',      val: p.confidence_component_debate      },
+    { key: 'regime',      val: p.confidence_component_regime      },
+    { key: 'historical',  val: p.confidence_component_historical  },
+    { key: 'risk_mgr',    val: p.confidence_component_risk_mgr    },
   ].filter(c => c.val != null)
 
   return (
-    <div className="p-4 space-y-4 max-w-[480px] mx-auto pb-8">
-      <div className="pt-2 flex items-start justify-between gap-2">
+    <div className="p-4 space-y-3 max-w-[480px] mx-auto pb-8">
+
+      <div className="pt-3 flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold">{p.ticker}</h1>
-          <p className="text-slate-400 text-sm">{p.scan_date}</p>
+          <h1 className="font-play uppercase tracking-[0.3em] text-brand-white text-2xl">{p.ticker}</h1>
+          <p className="font-space text-[10px] text-brand-white/30 tracking-widest mt-0.5">{p.scan_date}</p>
         </div>
         <div className="text-right">
-          <div className={`text-xl font-bold ${p.score_passed ? 'text-green-400' : 'text-slate-400'}`}>
+          <div className={`font-orbitron text-xl tracking-widest ${p.score_passed ? 'text-brand-cyan neon-text' : 'text-brand-white/25'}`}>
             {p.score_passed ? 'ENTER' : 'SKIP'}
           </div>
           {p.confidence_score != null && (
-            <div className="text-slate-400 text-sm">Score: {p.confidence_score}</div>
+            <div className="font-space text-[10px] text-brand-white/35 tracking-wider mt-0.5">
+              SCORE <span className="font-orbitron text-brand-white">{p.confidence_score}</span>
+            </div>
           )}
         </div>
       </div>
 
-      <section className="bg-slate-800 rounded-2xl p-4 space-y-2">
-        <h2 className="text-sm font-medium text-slate-300">Trade Parameters</h2>
-        <div className="grid grid-cols-2 gap-3 text-sm">
+      <div className="brand-card p-4 space-y-3">
+        <h2 className="section-label">Trade Parameters</h2>
+        <div className="grid grid-cols-2 gap-3">
           {p.predicted_direction && (
             <div>
-              <div className="text-slate-400">Direction</div>
-              <div className={`font-semibold ${p.predicted_direction === 'up' ? 'text-green-400' : 'text-red-400'}`}>
-                {p.predicted_direction === 'up' ? 'LONG' : 'SHORT'}
+              <div className="section-label mb-1">Direction</div>
+              <div className={`font-orbitron text-xs tracking-widest ${p.predicted_direction === 'up' ? 'text-brand-cyan' : 'text-brand-magenta'}`}>
+                {p.predicted_direction === 'up' ? '▲ LONG' : '▼ SHORT'}
               </div>
             </div>
           )}
           {p.predicted_move_pct != null && (
             <div>
-              <div className="text-slate-400">Target move</div>
-              <div className="font-semibold">+{p.predicted_move_pct.toFixed(1)}%</div>
+              <div className="section-label mb-1">Target Move</div>
+              <div className="font-orbitron text-xs text-brand-cyan tracking-wider">+{p.predicted_move_pct.toFixed(1)}%</div>
             </div>
           )}
           {afterTax != null && (
             <div>
-              <div className="text-slate-400">After-tax (30%)</div>
-              <div className={`font-semibold ${afterTax >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <div className="section-label mb-1">After-Tax (30%)</div>
+              <div className={`font-orbitron text-xs tracking-wider ${afterTax >= 0 ? 'text-brand-cyan' : 'text-brand-magenta'}`}>
                 {afterTax >= 0 ? '+' : ''}{afterTax.toFixed(1)}%
               </div>
             </div>
           )}
           {p.predicted_timeframe_days != null && (
             <div>
-              <div className="text-slate-400">Timeframe</div>
-              <div className="font-semibold">{p.predicted_timeframe_days}d</div>
+              <div className="section-label mb-1">Timeframe</div>
+              <div className="font-orbitron text-xs text-brand-white tracking-wider">{p.predicted_timeframe_days}D</div>
             </div>
           )}
           {p.vix_at_prediction != null && (
             <div>
-              <div className="text-slate-400">VIX</div>
-              <div className="font-semibold">{p.vix_at_prediction.toFixed(1)}</div>
+              <div className="section-label mb-1">VIX</div>
+              <div className="font-orbitron text-xs text-brand-white tracking-wider">{p.vix_at_prediction.toFixed(1)}</div>
             </div>
           )}
           {p.market_regime && (
             <div>
-              <div className="text-slate-400">Regime</div>
-              <div className="font-semibold capitalize">{p.market_regime}</div>
+              <div className="section-label mb-1">Regime</div>
+              <div className="font-space text-xs text-brand-white/70 tracking-wider uppercase">{p.market_regime}</div>
             </div>
           )}
         </div>
-      </section>
+      </div>
 
       {components.length > 0 && (
-        <section className="bg-slate-800 rounded-2xl p-4 space-y-3">
-          <h2 className="text-sm font-medium text-slate-300">Confidence Breakdown</h2>
+        <div className="brand-card p-4 space-y-3">
+          <h2 className="section-label">Confidence Breakdown</h2>
           {components.map(({ key, val }) => (
-            <div key={key}>
-              <div className="flex justify-between text-xs text-slate-400 mb-1">
-                <span>{COMPONENT_LABELS[key]}</span>
-                <span>{val}/20</span>
-              </div>
-              <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${((val ?? 0) / 20) * 100}%` }} />
-              </div>
+            <div key={key} className="flex items-center justify-between gap-3">
+              <span className="font-space text-[10px] text-brand-white/35 tracking-wider w-24 shrink-0">
+                {COMPONENT_LABELS[key]}
+              </span>
+              <SegBar value={val ?? 0} max={20} />
+              <span className="font-orbitron text-[10px] text-brand-cyan/60 w-8 text-right">{val}/20</span>
             </div>
           ))}
           {p.confidence_score != null && (
-            <div className="pt-1 border-t border-slate-700 flex justify-between text-sm font-semibold">
-              <span>Total</span>
-              <span>{p.confidence_score}/100</span>
+            <div className="pt-2 border-t border-brand-cyan/10 flex items-center justify-between">
+              <span className="section-label">Total</span>
+              <span className="font-orbitron text-sm text-brand-cyan">{p.confidence_score}/100</span>
             </div>
           )}
-        </section>
+        </div>
       )}
 
       {p.signals_fired?.length > 0 && (
-        <section className="bg-slate-800 rounded-2xl p-4 space-y-2">
-          <h2 className="text-sm font-medium text-slate-300">Signals Fired</h2>
+        <div className="brand-card p-4 space-y-2">
+          <h2 className="section-label">Signals Fired</h2>
           <div className="flex flex-wrap gap-1.5">
             {p.signals_fired.map(s => (
-              <span key={s} className="text-xs bg-slate-700 text-slate-300 px-2.5 py-1 rounded-full">{s}</span>
+              <span key={s} className="font-space text-[9px] border border-brand-cyan/22 text-brand-cyan/55 px-2 py-0.5 rounded tracking-wide">
+                {s}
+              </span>
             ))}
           </div>
-        </section>
+        </div>
       )}
 
       {p.debate_narrative && (
-        <section className="bg-slate-800 rounded-2xl p-4 space-y-2">
-          <h2 className="text-sm font-medium text-slate-300">Agent Debate</h2>
-          <div className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{p.debate_narrative}</div>
-        </section>
+        <div className="brand-card p-4 space-y-2">
+          <h2 className="section-label">Agent Debate</h2>
+          <div className="font-inter text-[11px] text-brand-white/65 whitespace-pre-wrap leading-relaxed">{p.debate_narrative}</div>
+        </div>
       )}
 
       {p.resolved && (
-        <section className="bg-slate-800 rounded-2xl p-4 space-y-2">
-          <h2 className="text-sm font-medium text-slate-300">Outcome</h2>
-          <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="brand-card p-4 space-y-3">
+          <h2 className="section-label">Outcome</h2>
+          <div className="grid grid-cols-2 gap-3">
             {p.actual_move_pct != null && (
               <div>
-                <div className="text-slate-400">Actual move</div>
-                <div className={`font-semibold ${p.actual_move_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <div className="section-label mb-1">Actual Move</div>
+                <div className={`font-orbitron text-sm tracking-wider ${p.actual_move_pct >= 0 ? 'text-brand-cyan' : 'text-brand-magenta'}`}>
                   {p.actual_move_pct >= 0 ? '+' : ''}{p.actual_move_pct.toFixed(2)}%
                 </div>
               </div>
             )}
             {p.direction_correct != null && (
               <div>
-                <div className="text-slate-400">Direction</div>
-                <div className={`font-semibold ${p.direction_correct ? 'text-green-400' : 'text-red-400'}`}>
-                  {p.direction_correct ? 'CORRECT' : 'WRONG'}
+                <div className="section-label mb-1">Direction</div>
+                <div className={`font-orbitron text-[11px] tracking-widest ${p.direction_correct ? 'text-brand-cyan' : 'text-brand-magenta'}`}>
+                  {p.direction_correct ? '◆ CORRECT' : '◇ WRONG'}
                 </div>
               </div>
             )}
             {p.exit_reason && (
               <div>
-                <div className="text-slate-400">Exit reason</div>
-                <div className="font-semibold capitalize">{p.exit_reason.replace('_', ' ')}</div>
+                <div className="section-label mb-1">Exit Reason</div>
+                <div className="font-space text-xs text-brand-white/60 uppercase tracking-wider">{p.exit_reason.replace('_', ' ')}</div>
               </div>
             )}
             {p.accuracy_score != null && (
               <div>
-                <div className="text-slate-400">Accuracy score</div>
-                <div className="font-semibold">{p.accuracy_score}</div>
+                <div className="section-label mb-1">Accuracy Score</div>
+                <div className="font-orbitron text-sm text-brand-white">{p.accuracy_score}</div>
               </div>
             )}
           </div>
           {p.lessons && (
-            <p className="text-xs text-slate-400 pt-2 border-t border-slate-700">{p.lessons}</p>
+            <p className="font-inter text-[11px] text-brand-white/35 pt-2 border-t border-brand-cyan/10 leading-relaxed">{p.lessons}</p>
           )}
-        </section>
+        </div>
       )}
 
       {p.approval_status === 'approved' && !p.executed && (

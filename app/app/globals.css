@@ -3,11 +3,41 @@
 @tailwind utilities;
 
 body {
-  background: #0f172a;
-  color: #f1f5f9;
-  font-family: system-ui, -apple-system, sans-serif;
+  background: #000612;
+  color: #E8FEFF;
+  font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   max-width: 480px;
   margin: 0 auto;
   min-height: 100dvh;
+}
+
+@layer utilities {
+  .neon-text {
+    text-shadow:
+      0 0 4px rgba(88, 227, 239, 0.9),
+      0 0 10px rgba(88, 227, 239, 0.5),
+      0 0 20px rgba(88, 227, 239, 0.2);
+  }
+
+  .neon-gold {
+    text-shadow:
+      0 0 4px rgba(255, 185, 56, 0.9),
+      0 0 10px rgba(255, 185, 56, 0.4);
+  }
+
+  .brand-card {
+    background: #1A1C2C;
+    border: 1px solid rgba(88, 227, 239, 0.28);
+    border-radius: 12px;
+    box-shadow: 0 0 14px rgba(88, 227, 239, 0.05);
+  }
+
+  .section-label {
+    font-family: var(--font-space), sans-serif;
+    font-size: 0.625rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(88, 227, 239, 0.55);
+  }
 }

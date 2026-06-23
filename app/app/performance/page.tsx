@@ -4,114 +4,126 @@ import type { SignalAccuracy, ConfidenceCalibration, Prediction } from '@/lib/ty
 
 const MIN_PREDICTIONS = 30
 
+function SegBar({ value, max = 100 }: { value: number; max?: number }) {
+  const SEGS   = 10
+  const filled = Math.round((value / max) * SEGS)
+  return (
+    <span className="font-mono text-brand-cyan text-[11px] tracking-[0.1em]">
+      {'[' + '■'.repeat(filled) + '□'.repeat(SEGS - filled) + ']'}
+    </span>
+  )
+}
+
 export default async function PerformancePage() {
   const [resolvedRes, signalRes, calibRes] = await Promise.all([
-    supabase.from('predictions').select('direction_correct, confidence_score, actual_move_pct, resolved')
+    supabase.from('predictions')
+      .select('direction_correct, confidence_score, actual_move_pct, resolved')
       .eq('resolved', true),
     supabase.from('signal_accuracy').select('*').order('resolved_count', { ascending: false }).limit(20),
     supabase.from('confidence_score_calibration').select('*').order('confidence_band'),
   ])
 
-  const resolved = (resolvedRes.data ?? []) as Pick<Prediction, 'direction_correct' | 'confidence_score' | 'actual_move_pct' | 'resolved'>[]
-  const signals = (signalRes.data ?? []) as SignalAccuracy[]
+  const resolved    = (resolvedRes.data ?? []) as Pick<Prediction, 'direction_correct' | 'confidence_score' | 'actual_move_pct' | 'resolved'>[]
+  const signals     = (signalRes.data ?? []) as SignalAccuracy[]
   const calibration = (calibRes.data ?? []) as ConfidenceCalibration[]
 
-  const total = resolved.length
+  const total   = resolved.length
   const correct = resolved.filter(p => p.direction_correct === true).length
   const winRate = total > 0 ? (correct / total * 100).toFixed(1) : null
 
-  const avgWin = resolved.filter(p => p.direction_correct && p.actual_move_pct != null)
+  const avgWin  = resolved.filter(p => p.direction_correct && p.actual_move_pct != null)
     .reduce((s, p, _, a) => s + (p.actual_move_pct! / a.length), 0)
   const avgLoss = resolved.filter(p => p.direction_correct === false && p.actual_move_pct != null)
     .reduce((s, p, _, a) => s + (p.actual_move_pct! / a.length), 0)
 
   return (
-    <div className="p-4 space-y-4 max-w-[480px] mx-auto pb-8">
-      <h1 className="text-xl font-bold pt-2">Performance</h1>
+    <div className="p-4 space-y-3 max-w-[480px] mx-auto pb-8">
+
+      <div className="pt-3">
+        <h1 className="font-play uppercase tracking-[0.25em] text-brand-white text-sm">Performance</h1>
+      </div>
 
       {total < MIN_PREDICTIONS && (
-        <div className="bg-amber-900/30 border border-amber-700/50 rounded-2xl p-4 text-sm text-amber-300">
-          Learning period — {total} prediction{total !== 1 ? 's' : ''} resolved, need {MIN_PREDICTIONS}+ to calibrate
+        <div className="brand-card p-3" style={{ borderColor: 'rgba(255,185,56,0.35)', boxShadow: '0 0 10px rgba(255,185,56,0.05)' }}>
+          <p className="font-space text-[10px] text-brand-gold tracking-widest">
+            ◈ LEARNING PERIOD — {total}/{MIN_PREDICTIONS} PREDICTIONS RESOLVED
+          </p>
         </div>
       )}
 
-      <section className="bg-slate-800 rounded-2xl p-4">
-        <h2 className="text-sm font-medium text-slate-300 mb-3">Overall</h2>
+      <div className="brand-card p-4">
+        <h2 className="section-label mb-4">Overall</h2>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <div className="text-2xl font-bold">{total}</div>
-            <div className="text-xs text-slate-400">Resolved</div>
+            <div className="font-orbitron text-2xl leading-none text-brand-white">{total}</div>
+            <div className="section-label mt-1.5">RESOLVED</div>
           </div>
           <div>
-            <div className={`text-2xl font-bold ${winRate != null && parseFloat(winRate) >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+            <div className={`font-orbitron text-2xl leading-none ${winRate != null && parseFloat(winRate) >= 50 ? 'text-brand-cyan neon-text' : 'text-brand-magenta'}`}>
               {winRate != null ? `${winRate}%` : '—'}
             </div>
-            <div className="text-xs text-slate-400">Win Rate</div>
+            <div className="section-label mt-1.5">WIN RATE</div>
           </div>
           <div>
-            <div className="text-2xl font-bold">{correct}</div>
-            <div className="text-xs text-slate-400">Correct</div>
+            <div className="font-orbitron text-2xl leading-none text-brand-white">{correct}</div>
+            <div className="section-label mt-1.5">CORRECT</div>
           </div>
         </div>
         {total > 0 && (
-          <div className="mt-3 flex gap-4 text-sm">
+          <div className="mt-4 pt-3 border-t border-brand-cyan/10 flex gap-5">
             <div>
-              <span className="text-slate-400">Avg win: </span>
-              <span className="text-green-400">+{avgWin.toFixed(1)}%</span>
+              <span className="section-label">AVG WIN </span>
+              <span className="font-orbitron text-[11px] text-brand-cyan">+{avgWin.toFixed(1)}%</span>
             </div>
             <div>
-              <span className="text-slate-400">Avg loss: </span>
-              <span className="text-red-400">{avgLoss.toFixed(1)}%</span>
+              <span className="section-label">AVG LOSS </span>
+              <span className="font-orbitron text-[11px] text-brand-magenta">{avgLoss.toFixed(1)}%</span>
             </div>
           </div>
         )}
-      </section>
+      </div>
 
       {calibration.length > 0 && (
-        <section className="bg-slate-800 rounded-2xl p-4 space-y-3">
-          <h2 className="text-sm font-medium text-slate-300">Confidence Calibration</h2>
+        <div className="brand-card p-4 space-y-4">
+          <h2 className="section-label">Confidence Calibration</h2>
           {calibration.map(c => (
-            <div key={c.confidence_band}>
-              <div className="flex justify-between text-xs text-slate-400 mb-1">
-                <span>{c.confidence_band}</span>
-                <span>{c.direction_accuracy_pct != null ? `${c.direction_accuracy_pct.toFixed(0)}% win` : '—'} · {c.resolved_count} trades</span>
+            <div key={c.confidence_band} className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-space text-[10px] text-brand-white/50 tracking-wider w-20 shrink-0">{c.confidence_band}</span>
+                <SegBar value={c.direction_accuracy_pct ?? 0} max={100} />
+                <span className="font-orbitron text-[10px] text-brand-cyan/60 w-10 text-right">
+                  {c.direction_accuracy_pct != null ? `${c.direction_accuracy_pct.toFixed(0)}%` : '—'}
+                </span>
               </div>
-              <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 rounded-full"
-                  style={{ width: `${c.direction_accuracy_pct ?? 0}%` }}
-                />
-              </div>
+              <div className="font-space text-[9px] text-brand-white/20 tracking-wider pl-20">{c.resolved_count} TRADES</div>
             </div>
           ))}
-        </section>
+        </div>
       )}
 
       {signals.length > 0 && (
-        <section className="bg-slate-800 rounded-2xl p-4 space-y-3">
-          <h2 className="text-sm font-medium text-slate-300">Signal Accuracy</h2>
-          <div className="space-y-2">
-            {signals.map((s, i) => (
-              <div key={i} className="flex items-start justify-between gap-2 text-sm py-2 border-b border-slate-700/50 last:border-0">
-                <div className="flex-1 min-w-0">
-                  <div className="text-slate-300 text-xs truncate">
-                    {Array.isArray(s.signals_fired) ? s.signals_fired.slice(0, 2).join(', ') : s.signals_fired}
-                  </div>
-                  <div className="text-slate-500 text-xs">{s.resolved_count} trades</div>
+        <div className="brand-card p-4 space-y-1">
+          <h2 className="section-label mb-3">Signal Accuracy</h2>
+          {signals.map((s, i) => (
+            <div key={i} className="flex items-start justify-between gap-2 py-2 border-b border-brand-cyan/5 last:border-0">
+              <div className="flex-1 min-w-0">
+                <div className="font-space text-[10px] text-brand-white/55 tracking-wide truncate">
+                  {Array.isArray(s.signals_fired) ? s.signals_fired.slice(0, 2).join(' · ') : s.signals_fired}
                 </div>
-                <div className="text-right shrink-0">
-                  {s.insufficient_data ? (
-                    <span className="text-slate-500 text-xs">insufficient data</span>
-                  ) : (
-                    <span className={`font-semibold ${(s.direction_accuracy_pct ?? 0) >= 50 ? 'text-green-400' : 'text-red-400'}`}>
-                      {s.direction_accuracy_pct?.toFixed(0)}%
-                    </span>
-                  )}
-                </div>
+                <div className="font-space text-[9px] text-brand-white/20 tracking-wider mt-0.5">{s.resolved_count} TRADES</div>
               </div>
-            ))}
-          </div>
-        </section>
+              <div className="text-right shrink-0">
+                {s.insufficient_data ? (
+                  <span className="font-space text-[9px] text-brand-white/20 tracking-wider">INSUFFICIENT</span>
+                ) : (
+                  <span className={`font-orbitron text-xs ${(s.direction_accuracy_pct ?? 0) >= 50 ? 'text-brand-cyan' : 'text-brand-magenta'}`}>
+                    {s.direction_accuracy_pct?.toFixed(0)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

@@ -1,98 +1,111 @@
 export default function PlanPage() {
   return (
-    <div className="p-4 space-y-4 max-w-[480px] mx-auto pb-8">
-      <h1 className="text-xl font-bold pt-2">System Rules</h1>
+    <div className="p-4 space-y-3 max-w-[480px] mx-auto pb-8">
 
-      <section className="bg-slate-800 rounded-2xl p-4 space-y-2">
-        <h2 className="text-sm font-semibold text-blue-400">Confidence Thresholds</h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-slate-400 text-xs text-left border-b border-slate-700">
-              <th className="pb-2">VIX Regime</th><th className="pb-2">VIX Range</th><th className="pb-2">Min Score</th>
-            </tr>
-          </thead>
-          <tbody className="space-y-1">
-            {[
-              ['Low', '< 15', '60'],
-              ['Normal', '15–20', '60'],
-              ['Elevated', '20–30', '65'],
-              ['High', '> 30', '72'],
-            ].map(([regime, range, score]) => (
-              <tr key={regime} className="border-b border-slate-700/50">
-                <td className="py-1.5 text-slate-300">{regime}</td>
-                <td className="py-1.5 text-slate-400">{range}</td>
-                <td className="py-1.5 font-semibold">{score}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <div className="pt-3">
+        <h1 className="font-play uppercase tracking-[0.25em] text-brand-white text-sm">System Rules</h1>
+      </div>
 
-      <section className="bg-slate-800 rounded-2xl p-4 space-y-2">
-        <h2 className="text-sm font-semibold text-blue-400">After-Tax Minimums (30% rate)</h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-slate-400 text-xs text-left border-b border-slate-700">
-              <th className="pb-2">Timeframe</th><th className="pb-2">Net After-Tax</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              ['Intraday (0–1d)', '+3%'],
-              ['Short-term (4–30d)', '+5%'],
-              ['Medium-term (30–90d)', '+7%'],
-            ].map(([tf, min]) => (
-              <tr key={tf} className="border-b border-slate-700/50">
-                <td className="py-1.5 text-slate-300">{tf}</td>
-                <td className="py-1.5 text-green-400 font-semibold">{min}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <div className="brand-card p-4 space-y-3">
+        <h2 className="section-label">Confidence Thresholds</h2>
+        <div className="space-y-0.5">
+          {[
+            ['LOW',      '< 15',   '60'],
+            ['NORMAL',   '15–20',  '60'],
+            ['ELEVATED', '20–30',  '65'],
+            ['HIGH',     '> 30',   '72'],
+          ].map(([regime, range, score]) => (
+            <div key={regime} className="flex items-center py-2 border-b border-brand-cyan/8 last:border-0 gap-3">
+              <span className="font-space text-[10px] tracking-widest text-brand-white/55 w-20 shrink-0">{regime}</span>
+              <span className="font-space text-[10px] text-brand-white/30 tracking-wider flex-1">{range}</span>
+              <span className="font-orbitron text-xs text-brand-cyan">{score}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
-      <section className="bg-slate-800 rounded-2xl p-4 space-y-2">
-        <h2 className="text-sm font-semibold text-blue-400">Risk Hard Rules</h2>
-        <ul className="space-y-2 text-sm text-slate-300">
-          <li className="flex gap-2"><span className="text-red-400 shrink-0">■</span>Max 2 new positions/day</li>
-          <li className="flex gap-2"><span className="text-red-400 shrink-0">■</span>Max 20% equity deployed per session</li>
-          <li className="flex gap-2"><span className="text-red-400 shrink-0">■</span>Agentic account only (cash, T+1 settlement)</li>
-          <li className="flex gap-2"><span className="text-red-400 shrink-0">■</span>Stop loss: 7% below entry (standard), 5% below (elevated VIX)</li>
-          <li className="flex gap-2"><span className="text-red-400 shrink-0">■</span>No trades when macro_go = false</li>
-          <li className="flex gap-2"><span className="text-red-400 shrink-0">■</span>Manual APPROVE required before any execution</li>
+      <div className="brand-card p-4 space-y-3">
+        <h2 className="section-label">After-Tax Minimums (30%)</h2>
+        <div className="space-y-0.5">
+          {[
+            ['INTRADAY (0–1D)',      '+3%'],
+            ['SHORT-TERM (4–30D)',   '+5%'],
+            ['MEDIUM-TERM (30–90D)', '+7%'],
+          ].map(([tf, min]) => (
+            <div key={tf} className="flex items-center py-2 border-b border-brand-cyan/8 last:border-0 gap-3">
+              <span className="font-space text-[9px] tracking-wider text-brand-white/45 flex-1">{tf}</span>
+              <span className="font-orbitron text-xs text-brand-cyan">{min}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="brand-card p-4 space-y-3">
+        <h2 className="section-label">Risk Hard Rules</h2>
+        <ul className="space-y-2.5">
+          {[
+            'Max 2 new positions / day',
+            'Max 20% equity deployed per session',
+            'Agentic account only (cash, T+1 settlement)',
+            'Stop loss: 7% below entry · 5% in elevated VIX',
+            'No trades when macro_go = false',
+            'Autonomous auto-execute — AI executes when confidence threshold passes',
+          ].map((rule, i) => (
+            <li key={i} className="flex gap-3 items-start">
+              <span className="text-brand-magenta/55 font-mono text-[10px] mt-px shrink-0">■</span>
+              <span className="font-inter text-[11px] text-brand-white/60 leading-relaxed">{rule}</span>
+            </li>
+          ))}
         </ul>
-      </section>
+      </div>
 
-      <section className="bg-slate-800 rounded-2xl p-4 space-y-2">
-        <h2 className="text-sm font-semibold text-blue-400">Trailing Stop Ladder</h2>
-        <ul className="space-y-2 text-sm text-slate-300">
-          <li className="flex gap-2"><span className="text-green-400 shrink-0">+15%</span>Move stop to breakeven</li>
-          <li className="flex gap-2"><span className="text-green-400 shrink-0">+25%</span>Trail 10% below peak</li>
-          <li className="flex gap-2"><span className="text-green-400 shrink-0">+35%</span>Trail 8% below peak</li>
+      <div className="brand-card p-4 space-y-3">
+        <h2 className="section-label">Trailing Stop Ladder</h2>
+        <ul className="space-y-2.5">
+          {[
+            ['+15%', 'Move stop to breakeven'],
+            ['+25%', 'Trail 10% below peak'],
+            ['+35%', 'Trail 8% below peak'],
+          ].map(([trigger, action]) => (
+            <li key={trigger} className="flex gap-3 items-center">
+              <span className="font-orbitron text-[11px] text-brand-cyan w-10 shrink-0">{trigger}</span>
+              <span className="font-inter text-[11px] text-brand-white/55">{action}</span>
+            </li>
+          ))}
         </ul>
-      </section>
+      </div>
 
-      <section className="bg-slate-800 rounded-2xl p-4 space-y-2">
-        <h2 className="text-sm font-semibold text-blue-400">Exit Triggers</h2>
-        <ul className="space-y-2 text-sm text-slate-300">
+      <div className="brand-card p-4 space-y-3">
+        <h2 className="section-label">Exit Triggers</h2>
+        <ul className="space-y-2.5">
           {[
             'Stop loss hit',
             'Price target reached → review whether to hold',
             'Timeframe expired',
-            'Original thesis invalidated (earnings miss, guidance cut, etc.)',
+            'Original thesis invalidated',
             'Trailing stop triggered',
             'Sector rotation turns against position',
-            'Manual exit (your call)',
+            'Manual exit',
           ].map((trigger, i) => (
-            <li key={i} className="flex gap-2"><span className="text-slate-500 shrink-0">{i + 1}.</span>{trigger}</li>
+            <li key={i} className="flex gap-3 items-start">
+              <span className="font-orbitron text-[9px] text-brand-cyan/35 mt-px shrink-0 w-4">{i + 1}</span>
+              <span className="font-inter text-[11px] text-brand-white/60">{trigger}</span>
+            </li>
           ))}
         </ul>
-      </section>
+      </div>
 
-      <section className="bg-slate-800 rounded-2xl p-4 space-y-2">
-        <h2 className="text-sm font-semibold text-blue-400">Learning Period</h2>
-        <p className="text-sm text-slate-300">No trade execution through 2026-06-28. Debates and prediction logging run normally to build calibration data.</p>
-      </section>
+      <div className="brand-card p-4 space-y-2">
+        <h2 className="section-label">Learning Period</h2>
+        <p className="font-inter text-[11px] text-brand-white/55 leading-relaxed">
+          No trade execution through 2026-06-28. Debates and prediction logging run normally to build calibration data.
+        </p>
+      </div>
+
+      <p className="text-center font-space text-[9px] tracking-widest pt-1"
+        style={{ color: 'rgba(232,254,255,0.12)' }}>
+        Sync complete △ M3OW
+      </p>
     </div>
   )
 }
