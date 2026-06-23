@@ -287,6 +287,12 @@ management" and "excessive caution."
 - Overfitting check (see Section 8.5) before adopting any weight changes
 - Confidence score audit: are high-score trades outperforming low-score trades? If not, the scoring model needs review.
 
+**Benchmark comparison (every monthly review):**
+- Benchmark: **SPY total return** for the same period
+- Performance metric: **Sharpe ratio** (annualized) = (return − risk-free rate) / return stdev × √12
+- Risk-free rate: current 3-month T-bill yield
+- Review trigger: **two consecutive months of negative alpha vs SPY** → full strategy review required before next month's trading begins
+
 ### 5.4 Sample Living Dashboard
 
 ```
@@ -515,6 +521,6 @@ These protect the system from *you*, not just the market:
     parameter updates, human sign-off required
 
 **Open scope decisions (before step 7):**
-- Define benchmark (SPY total return) and performance metric (Sharpe ratio)
-- Set signal staleness thresholds per signal type
-- Confirm options and short selling remain out of scope for v1
+- ✅ Define benchmark (SPY total return) and performance metric (Sharpe ratio) — resolved §5.3
+- ✅ Set signal staleness thresholds per signal type — resolved in system prompt §2
+- ✅ Confirm options and short selling remain out of scope for v1 — long-only equities; bearish agent's role is "don't enter" or "exit," not "short"

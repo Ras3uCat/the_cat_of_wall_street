@@ -33,7 +33,7 @@ Criteria: 500K+ ADV, $500M+ market cap, no earnings within 3 days, no wash-sale 
 ### GAP-03: Signal Staleness Thresholds Undefined
 A dark pool print from 4 hours ago is different from one from 3 days ago. No definition of maximum signal age before discard, per signal type.
 
-**Next step:** Add staleness thresholds per signal type in strategy doc (varies by alpha decay window — options flow: hours; politician trades: days).
+**Resolved:** Staleness thresholds table added to system prompt §2 — options flow 4h, 8-K 3d, Form 4 14d, gov contracts 30d, macro 1d, technicals same-session.
 
 ---
 
@@ -66,7 +66,7 @@ Monthly review proposed Claude auto-applying updated signal weights and risk par
 ### GAP-07: No Benchmark Defined
 A profitable year in a bull market may still represent underperformance. No baseline to measure against.
 
-**Next step:** Add to strategy doc — benchmark: SPY total return; performance metric: Sharpe ratio (risk-adjusted); review threshold: two consecutive months of underperformance triggers strategy review.
+**Resolved:** Benchmark (SPY total return), Sharpe ratio formula, and 2-consecutive-month underperformance review trigger defined in strategy doc §5.3 and system prompt §8.
 
 ---
 
@@ -96,14 +96,14 @@ At $50–$300, most institutional signals are tracking activity far larger than 
 ### GAP-11: Options Scope Unclear
 The system uses options flow as a signal. It is not stated whether the system will also trade options, or is equity-only.
 
-**Next step:** Add explicit scope statement to strategy doc — equities only in v1; options trading is out of scope until the system has a track record and appropriate Robinhood approval tier.
+**Resolved:** Long-only equities in v1. Options trading out of scope until system has track record and Robinhood options approval. Documented in strategy doc §12.
 
 ---
 
 ### GAP-12: Short Selling Scope Unclear
 The multi-agent debate includes a bearish debater, but it's unstated whether the system can short. Robinhood shorting requires margin.
 
-**Next step:** Add explicit scope statement — long-only in v1. Bearish agent's role is "don't enter" or "exit existing position," not "short it."
+**Resolved:** Long-only in v1. Bearish agent's role is "don't enter" or "exit existing position" — not "short it." Documented in strategy doc §12.
 
 ---
 
@@ -113,13 +113,13 @@ The multi-agent debate includes a bearish debater, but it's unstated whether the
 |---|---|
 | GAP-01 Data pipeline | Resolved — free-tier Python pipeline in `system/data/` |
 | GAP-02 Universe selection | Resolved in strategy doc §2.6 |
-| GAP-03 Signal staleness | Open — needs per-signal thresholds |
+| GAP-03 Signal staleness | Resolved — system prompt §2 staleness table |
 | GAP-04 Convergence score | Resolved in strategy doc §3.5 |
 | GAP-05 Freeform lessons | Resolved in strategy doc §5 |
 | GAP-06 Human approval gate | Resolved in strategy doc §5 |
-| GAP-07 Benchmark | Open — add to strategy doc |
+| GAP-07 Benchmark | Resolved — SPY + Sharpe in strategy doc §5.3 + system prompt §8 |
 | GAP-08 Politician trade lag | Resolved in strategy doc §2.1 |
 | GAP-09 Earnings calendar | Resolved — `fetch_earnings_calendar.py` + EDGAR cross-check |
 | GAP-10 Cold start | Resolved in strategy doc §3.5, §12 |
-| GAP-11 Options scope | Open — add scope statement |
-| GAP-12 Short selling scope | Open — add scope statement |
+| GAP-11 Options scope | Resolved — long-only equities v1, strategy doc §12 |
+| GAP-12 Short selling scope | Resolved — long-only v1, strategy doc §12 |

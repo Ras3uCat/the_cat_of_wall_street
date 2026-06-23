@@ -619,6 +619,24 @@ PERFORMANCE
   Avg winner:          +X%
   Avg loser:           -X%
 
+BENCHMARK COMPARISON
+  System return (month):    +X.X%
+  SPY return (month):       +X.X%   [fetch via get_equity_historicals('SPY')]
+  Alpha vs SPY:             +X.X%
+  System return (YTD):      +X.X%
+  SPY return (YTD):         +X.X%
+  Alpha (YTD):              +X.X%
+
+  Sharpe ratio (monthly, annualized):
+    Formula: (system_monthly_return - risk_free_rate) / monthly_return_stdev * sqrt(12)
+    Risk-free rate: use current 3-month T-bill yield (fetch from macro data)
+    Return series: one data point per resolved trade (actual_move_pct × position_size_pct / 100)
+    [Result: X.XX — target > 1.0 for risk-adjusted outperformance]
+
+  Consecutive underperformance: N months
+  ⚠ If 2+ consecutive months of negative alpha vs SPY: trigger full strategy review
+    before next month's trading begins. Surface this prominently.
+
 BEST SIGNAL COMBOS    (≥10 resolved, accuracy > 65%)
   [combo]: X% accuracy over N trades
 
