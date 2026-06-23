@@ -99,6 +99,21 @@ if client:
 
 Use this table when each agent assesses signal strength. Strength affects the Signal Convergence component of the confidence score.
 
+### Signal Staleness Thresholds
+
+Discard any signal older than its max age. A stale signal does not count toward convergence.
+
+| Signal type | Max age | Reasoning |
+|---|---|---|
+| Options flow (vol/OI ratio) | 4 hours | Alpha decays intraday — yesterday's unusual flow is already priced in |
+| 8-K filing (material event) | 3 days | News cycle absorbs within 1–3 days; beyond that the edge is gone |
+| Form 4 insider purchase | 14 days | Informed money plays out over weeks, but beyond 2 weeks the thesis may have changed |
+| Government contract award | 30 days | Structural catalyst — slower moving, but still fades |
+| Macro snapshot (VIX, CPI, etc.) | 1 day | Recalculated at each session start — always use the latest run |
+| Technical signals (RSI, VWAP, SMA) | Same session | Always recalculated live — never carry over from a prior session |
+
+When a signal's source data is older than its threshold, note it as "stale — not counted" in the debate output and reduce the Signal Convergence score accordingly.
+
 ### Insider Trades (Form 4)
 
 | Finding | Strength | Reasoning |
