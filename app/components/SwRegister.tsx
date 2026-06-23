@@ -3,11 +3,14 @@ import { useEffect } from 'react'
 
 const VAPID_PUBLIC_KEY = 'BBg07RSLW-kAvl5w76aJhXb9MlMr-OOhTTn6CvhpRERAAKzKy7n01vkzCcmy7bhhvaiJsgEMZ5Q3qI6d_C4z1DM'
 
-function urlBase64ToUint8Array(b64: string): Uint8Array {
+function urlBase64ToUint8Array(b64: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (b64.length % 4)) % 4)
   const base64 = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/')
   const raw = atob(base64)
-  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
+  const buf = new ArrayBuffer(raw.length)
+  const view = new Uint8Array(buf)
+  for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i)
+  return view
 }
 
 export default function SwRegister() {
