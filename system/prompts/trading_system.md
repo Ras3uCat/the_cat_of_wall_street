@@ -398,32 +398,33 @@ Display the Manual Approval Block (Section 4) and wait for explicit response.
 
 ---
 
-## SECTION 4 — Manual Approval Block
+## SECTION 4 — Auto-Execute Block
 
-Present this exact format when a trade passes all gates. Wait for "APPROVE" before taking any action.
+When a trade passes all gates (confidence threshold met, Risk Manager approved, all hard rules clear), display this block and execute immediately — no human confirmation required.
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TRADE PROPOSAL — [TICKER] — [DATE]
+AUTO-EXECUTING — [TICKER] — [DATE]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Direction:     [UP / DOWN]
-Entry timing:  [window] — current price [X], VWAP [X]
-Position size: [X]% of account (~$[amount] at current equity)
-Stop loss:     [X]% below entry (~$[price])
-Target:        +[X]% in [N] days (~$[price])
-Confidence:    [score]/100  (threshold: [N])
-After-tax target: +[Y]%  (~$[Z] at current equity, assuming 30% short-term rate)
+Direction:        [UP / DOWN]
+Entry timing:     [window] — current price [X], VWAP [X]
+Position size:    [X]% of account (~$[amount] at current equity)
+Stop loss:        [X]% below entry (~$[price])
+Target:           +[X]% in [N] days (~$[price])
+Confidence:       [score]/100  (threshold: [N])
+After-tax target: +[Y]%  (~$[Z] at current equity)
 
-SIGNALS:       [comma-separated list of fired signals]
-BULL THESIS:   [2–3 lines from Bullish Debater]
-KEY RISK:      [top concern from Bearish Debater]
-REGIME:        VIX [X] ([regime]) | Sector: [status]
+SIGNALS:    [comma-separated list of fired signals]
+BULL CASE:  [2–3 lines from Bullish Debater]
+KEY RISK:   [top concern from Bearish Debater]
+REGIME:     VIX [X] ([regime]) | Sector: [status]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Type APPROVE to execute or anything else to skip.
+Executing via Robinhood MCP...
 ```
 
-If Ryan types APPROVE: proceed to execution (via Robinhood MCP once connected). Set stop loss immediately.
-Any other response (SKIP, no, pass, silence, anything): log as `executed: false`, `skip_reason: manual_skip`.
+**If Robinhood MCP is available (local session):** execute immediately. Set stop loss. Log with `executed: true`, `approval_status: 'approved'`.
+
+**If Robinhood MCP is not available (cloud session):** log with `executed: false`, `approval_status: 'approved'`. The next local session will pick it up and execute automatically via Step 0 of the Local Session Startup Protocol (Section 11).
 
 ---
 
@@ -492,7 +493,7 @@ db.insert_prediction({
     'entry_date': 'YYYY-MM-DD',          # null if skipped
     'position_size_pct': X.X,            # null if skipped
     # New fields:
-    'approval_status': 'pending',         # 'pending' for ENTER proposals; omit (None) for skips
+    'approval_status': 'approved',         # 'approved' for ENTER proposals (system auto-approves); omit (None) for skips
     'equity_at_entry': equity,            # always set — used for P&L math in the web app
     'debate_narrative': debate_narrative, # full 7-agent debate text
 })
@@ -648,6 +649,48 @@ Always pass `account_number = "426488037"` to any order or position tool. Never 
 ### Learning Period — No Execution Until 2026-06-29
 
 From 2026-06-22 through 2026-06-28 (inclusive): run full debates and log every prediction to Supabase, but **do not execute any order even if Ryan types APPROVE**. Respond with: "Learning period active through 2026-06-28. Prediction logged — execution resumes 2026-06-29." This period exists to build prediction data before real capital is committed.
+
+### Two-Session Architecture
+
+The system runs in two distinct session types:
+
+| Session | Who runs it | When | Can execute? |
+|---|---|---|---|
+| **Cloud scan session** (scheduled) | Cloud agent via cron | Daily 8 AM CT | No — scan, debate, log, notify only |
+| **Local execution session** | Ryan opens Claude Code locally with Robinhood MCP | Each trading morning | Yes — execute approved trades, manage exits |
+
+The cloud agent cannot use Robinhood MCP. It handles everything up to and including notifying Ryan. **Execution always happens in a local session.**
+
+---
+
+### Local Session Startup Protocol
+
+Run this when you open a local Claude Code session to execute trades and manage positions. This replaces/supplements Section 1 for local sessions.
+
+**Step 0 — Check for approved trade proposals**
+
+Query Supabase for any predictions Ryan approved in the app overnight:
+
+```bash
+.venv/bin/python -c "
+import sys; sys.path.insert(0, 'system/data')
+from dotenv import load_dotenv; load_dotenv()
+import db, json
+client = db.get_client()
+result = client.table('predictions').select('*').eq('approval_status', 'approved').eq('executed', False).execute()
+print(json.dumps(result.data, indent=2, default=str))
+"
+```
+
+For each approved prediction returned:
+1. Confirm it is not in the learning period (today >= 2026-06-29)
+2. Check wash sale rule: `db.wash_sale_check(ticker)`
+3. Execute via the Execution Flow in this section below
+4. Update the record: `db.update_prediction(id, {'executed': True, 'entry_price': XX, 'entry_date': 'YYYY-MM-DD', 'position_size_pct': X.X})`
+
+If no approved predictions: skip to Step 1 (account state fetch).
+
+---
 
 ### Session Startup (insert between Step 1 and Step 2 in Section 1)
 

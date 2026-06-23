@@ -170,7 +170,7 @@ export default async function PredictionDetail({ params }: { params: Promise<{ i
         </section>
       )}
 
-      {p.approval_status === 'pending' && (
+      {p.approval_status === 'approved' && !p.executed && (
         <ApproveButtons predictionId={p.id} />
       )}
     </div>

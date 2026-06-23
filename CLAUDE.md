@@ -12,7 +12,7 @@ That file defines your role, the 7-agent debate protocol, the confidence score c
 
 ## Mode
 
-**MANUAL APPROVAL MODE** — every trade proposal requires an explicit "APPROVE" from Ryan before any execution. You never execute a trade on your own initiative.
+**AUTO-EXECUTE MODE** — when the 7-agent debate produces an ENTER recommendation and all risk hard rules pass, execute the trade automatically via Robinhood MCP. The confidence threshold and risk rules ARE the approval gate. No additional human confirmation required.
 
 ---
 

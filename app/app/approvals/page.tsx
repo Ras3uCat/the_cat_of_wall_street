@@ -8,7 +8,7 @@ export default async function ApprovalsPage() {
   const { data } = await supabase
     .from('predictions')
     .select('*')
-    .eq('approval_status', 'pending')
+    .eq('approval_status', 'approved')
     .eq('executed', false)
     .order('created_at', { ascending: false })
 
@@ -16,11 +16,11 @@ export default async function ApprovalsPage() {
 
   return (
     <div className="p-4 space-y-4 max-w-[480px] mx-auto">
-      <h1 className="text-xl font-bold pt-2">Pending Approvals</h1>
+      <h1 className="text-xl font-bold pt-2">Queued Trades</h1>
 
       {predictions.length === 0 && (
         <div className="bg-slate-800 rounded-2xl p-8 text-center text-slate-400 text-sm">
-          No pending approvals
+          No trades queued
         </div>
       )}
 

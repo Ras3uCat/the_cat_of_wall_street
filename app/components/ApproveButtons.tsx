@@ -3,33 +3,28 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function ApproveButtons({ predictionId }: { predictionId: string }) {
-  const [loading, setLoading] = useState<'approved' | 'rejected' | null>(null)
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  async function act(action: 'approved' | 'rejected') {
-    setLoading(action)
+  async function cancel() {
+    setLoading(true)
     await fetch('/api/approve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: predictionId, action }),
+      body: JSON.stringify({ id: predictionId, action: 'rejected' }),
     })
-    setLoading(null)
+    setLoading(false)
     router.refresh()
   }
 
   return (
-    <div className="flex gap-3">
+    <div className="space-y-2">
+      <p className="text-xs text-amber-400 text-center">Queued — executes at next local session open</p>
       <button
-        onClick={() => act('approved')}
-        disabled={loading != null}
-        className="flex-1 py-3 rounded-xl bg-green-700 hover:bg-green-600 disabled:opacity-50 font-semibold text-white transition-colors">
-        {loading === 'approved' ? '...' : 'APPROVE'}
-      </button>
-      <button
-        onClick={() => act('rejected')}
-        disabled={loading != null}
-        className="flex-1 py-3 rounded-xl bg-red-900 hover:bg-red-800 disabled:opacity-50 font-semibold text-white transition-colors">
-        {loading === 'rejected' ? '...' : 'REJECT'}
+        onClick={cancel}
+        disabled={loading}
+        className="w-full py-3 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-50 font-semibold text-slate-300 transition-colors">
+        {loading ? '...' : 'Cancel Trade'}
       </button>
     </div>
   )

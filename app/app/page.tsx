@@ -18,7 +18,7 @@ export default async function Dashboard() {
   const [scanRes, pendingRes, resolvedRes] = await Promise.all([
     supabase.from('scans').select('*').order('created_at', { ascending: false }).limit(1).single(),
     supabase.from('predictions').select('id, ticker, confidence_score, predicted_move_pct, predicted_timeframe_days')
-      .eq('approval_status', 'pending').eq('executed', false),
+      .eq('approval_status', 'approved').eq('executed', false),
     supabase.from('predictions').select('actual_move_pct, position_size_pct, equity_at_entry')
       .eq('resolved', true).not('actual_move_pct', 'is', null),
   ])
@@ -87,7 +87,7 @@ export default async function Dashboard() {
         <Link href="/approvals" className="block bg-amber-900/40 border border-amber-700/50 rounded-2xl p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-semibold text-amber-300">{pending.length} trade{pending.length > 1 ? 's' : ''} need your approval</p>
+              <p className="font-semibold text-amber-300">{pending.length} trade{pending.length > 1 ? 's' : ''} queued for execution</p>
               <p className="text-xs text-slate-400 mt-0.5">
                 {pending.slice(0, 3).map(p => p.ticker).join(', ')}{pending.length > 3 ? ` +${pending.length - 3} more` : ''}
               </p>
