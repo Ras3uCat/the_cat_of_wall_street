@@ -14,35 +14,40 @@ import json
 import sys
 from datetime import date, timedelta
 from pathlib import Path
-import yfinance as yf
 import cache
 import db
 import fetch_earnings_calendar
+import fetch_market_data
 from config import MIN_ADV, MIN_MARKET_CAP, PDT_DAY_TRADE_LIMIT, PREDICTIONS_DIR
 
 
-def _check_adv(ticker: str) -> dict:
-    try:
-        hist = yf.Ticker(ticker).history(period="30d")
-        if hist.empty:
-            return {"ok": False, "reason": f"{ticker}: no price data returned — may be invalid or delisted", "adv": None}
-        adv = int(hist["Volume"].mean())
-        return {"ok": adv >= MIN_ADV, "adv_30d": adv, "threshold": MIN_ADV,
-                "reason": None if adv >= MIN_ADV else f"ADV {adv:,} below {MIN_ADV:,} minimum"}
-    except Exception:
-        return {"ok": False, "reason": f"{ticker}: could not fetch market data (network or API error)"}
-
-
-def _check_market_cap(ticker: str) -> dict:
-    try:
-        info = yf.Ticker(ticker).info
-        cap = info.get("marketCap", 0) or 0
-        return {"ok": cap >= MIN_MARKET_CAP, "market_cap": cap,
-                "market_cap_readable": f"${cap / 1e9:.1f}B" if cap >= 1e9 else f"${cap / 1e6:.0f}M",
-                "threshold": MIN_MARKET_CAP,
-                "reason": None if cap >= MIN_MARKET_CAP else f"Market cap ${cap / 1e6:.0f}M below $500M minimum"}
-    except Exception:
-        return {"ok": False, "reason": f"{ticker}: could not fetch market cap (network or API error)"}
+def _check_adv_and_cap(ticker: str) -> tuple[dict, dict]:
+    """Single fetch (or cache hit) for both ADV and market cap via fetch_market_data."""
+    data = fetch_market_data.fetch(ticker)
+    if data.get("status") != "ok":
+        msg = f"{ticker}: could not fetch market data (network or API error)"
+        return (
+            {"ok": False, "reason": msg, "adv_30d": None},
+            {"ok": False, "reason": msg, "market_cap": None},
+        )
+    adv = data.get("adv_30d", 0) or 0
+    cap = data.get("market_cap", 0) or 0
+    return (
+        {
+            "ok": adv >= MIN_ADV,
+            "adv_30d": adv,
+            "adv_30d_readable": data.get("adv_30d_readable"),
+            "threshold": MIN_ADV,
+            "reason": None if adv >= MIN_ADV else f"ADV {adv:,} below {MIN_ADV:,} minimum",
+        },
+        {
+            "ok": cap >= MIN_MARKET_CAP,
+            "market_cap": cap,
+            "market_cap_readable": data.get("market_cap_readable"),
+            "threshold": MIN_MARKET_CAP,
+            "reason": None if cap >= MIN_MARKET_CAP else f"Market cap {data.get('market_cap_readable', '')} below $500M minimum",
+        },
+    )
 
 
 def _check_earnings(ticker: str) -> dict:
@@ -151,8 +156,7 @@ def _check_pdt() -> dict:
 def check(ticker: str) -> dict:
     ticker = ticker.upper()
 
-    adv = _check_adv(ticker)
-    mktcap = _check_market_cap(ticker)
+    adv, mktcap = _check_adv_and_cap(ticker)
     earnings = _check_earnings(ticker)
     wash = _check_wash_sale(ticker)
     pdt = _check_pdt()

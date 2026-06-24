@@ -13,13 +13,16 @@ can be safely sized.
 """
 import json
 from datetime import datetime, timedelta
-import yfinance as yf
-from config import PROJECT_ROOT
+import fetch_market_data
+from config import (
+    PROJECT_ROOT,
+    PORTFOLIO_HEAT_LIMIT_PCT,
+    DEFAULT_STOP_LOSS_PCT,
+    SECTOR_CONCENTRATION_LIMIT,
+    ACCOUNT_STATE_STALENESS_MINUTES,
+)
 
 ACCOUNT_STATE_PATH = PROJECT_ROOT / "logs" / "account_state.json"
-STALE_THRESHOLD_MINUTES = 30
-
-SECTOR_MAP_CACHE: dict[str, str] = {}
 
 
 class AccountStateError(Exception):
@@ -40,9 +43,9 @@ def load() -> dict:
     state = json.loads(ACCOUNT_STATE_PATH.read_text())
     fetched_at = datetime.fromisoformat(state.get("fetched_at", "2000-01-01"))
     age = datetime.now() - fetched_at
-    if age > timedelta(minutes=STALE_THRESHOLD_MINUTES):
+    if age > timedelta(minutes=ACCOUNT_STATE_STALENESS_MINUTES):
         raise AccountStateError(
-            f"Account state is {int(age.total_seconds() / 60)} minutes old (threshold: {STALE_THRESHOLD_MINUTES} min). "
+            f"Account state is {int(age.total_seconds() / 60)} minutes old (threshold: {ACCOUNT_STATE_STALENESS_MINUTES} min). "
             f"Re-fetch via Robinhood MCP and rewrite logs/account_state.json."
         )
     return state
@@ -83,7 +86,7 @@ def get_portfolio_heat() -> dict:
 
     for pos in positions:
         value = float(pos.get("current_value", 0))
-        stop_loss_pct = float(pos.get("stop_loss_pct", 4.0))
+        stop_loss_pct = float(pos.get("stop_loss_pct", DEFAULT_STOP_LOSS_PCT))
         heat = (value / equity) * (stop_loss_pct / 100) * 100
         total_heat += heat
         position_heats.append({
@@ -96,8 +99,8 @@ def get_portfolio_heat() -> dict:
 
     return {
         "total_heat_pct": round(total_heat, 2),
-        "heat_limit_pct": 5.5,
-        "heat_ok": total_heat <= 5.5,
+        "heat_limit_pct": PORTFOLIO_HEAT_LIMIT_PCT,
+        "heat_ok": total_heat <= PORTFOLIO_HEAT_LIMIT_PCT,
         "equity": equity,
         "positions": position_heats,
     }
@@ -125,7 +128,7 @@ def get_sector_concentration() -> dict:
             s: {
                 "heat_pct": round(h, 2),
                 "pct_of_total_heat": round(h / total_heat * 100, 1) if total_heat > 0 else 0,
-                "at_limit": h / total_heat > 0.30 if total_heat > 0 else False,
+                "at_limit": h / total_heat > SECTOR_CONCENTRATION_LIMIT if total_heat > 0 else False,
             }
             for s, h in sorted(sector_heat.items(), key=lambda x: x[1], reverse=True)
         },
@@ -135,15 +138,15 @@ def get_sector_concentration() -> dict:
 
 
 def _get_sector(ticker: str) -> str:
-    if ticker in SECTOR_MAP_CACHE:
-        return SECTOR_MAP_CACHE[ticker]
+    """Sector lookup via fetch_market_data cache — no separate yfinance call."""
     try:
-        info = yf.Ticker(ticker).info
-        sector = info.get("sector", "Unknown")
+        data = fetch_market_data.fetch(ticker)
+        return data.get("sector") or "Unknown"
     except Exception:
-        sector = "Unknown"
-    SECTOR_MAP_CACHE[ticker] = sector
-    return sector
+        return "Unknown"
+
+
+read_state = load  # alias used in system prompt prediction logging template
 
 
 def write_state(state: dict) -> None:

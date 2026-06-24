@@ -13,10 +13,13 @@ Output:
 """
 import argparse
 import json
+import logging
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from datetime import date
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 # Add parent directory to path so imports work when called from project root
 sys.path.insert(0, str(Path(__file__).parent))
@@ -31,7 +34,10 @@ import fetch_sector_rotation
 import technicals
 import universe_check
 import db
-from config import PREDICTIONS_DIR, PROJECT_ROOT
+from config import PREDICTIONS_DIR, PROJECT_ROOT, SIGNAL_CONVERGENCE_THRESHOLD
+
+# How many tickers to scan in parallel
+_SCAN_WORKERS = 8
 
 
 def _load_default_watchlist() -> list[str]:
@@ -68,33 +74,58 @@ def _scan_ticker(ticker: str) -> dict:
 
     signals = {}
     with ThreadPoolExecutor(max_workers=6) as ex:
-        futures = {ex.submit(fn): name for name, fn in signal_fns.items()}
-        for future in as_completed(futures):
-            name = futures[future]
+        future_to_name = {ex.submit(fn): name for name, fn in signal_fns.items()}
+        done, not_done = wait(future_to_name.keys(), timeout=30)
+        for future in done:
+            name = future_to_name[future]
             try:
                 signals[name] = future.result()
-            except Exception as e:
-                signals[name] = {"status": "error", "error": str(e)}
+            except Exception:
+                signals[name] = {"status": "error", "error": f"{name} fetch failed"}
+                log.exception(f"[{ticker}] {name} fetch raised exception")
+        for future in not_done:
+            name = future_to_name[future]
+            signals[name] = {"status": "timeout", "error": f"{name} fetch timed out after 30s"}
+            log.warning(f"[{ticker}] {name} fetch timed out after 30s")
+            future.cancel()
 
-    # Count signal categories that produced a meaningful result
-    meaningful = 0
-    if signals.get("insider_trades", {}).get("filing_count", 0) > 0:
-        meaningful += 1
-    if signals.get("gov_contracts", {}).get("contract_count", 0) > 0:
-        meaningful += 1
+    # Count signal categories that produced a meaningful result.
+    # Insider: open-market purchases only (not gifts/grants/option exercises).
+    # Filings: material items only (1.01/2.01/2.02/5.02/7.01 — not 9.01 exhibits).
+    # Technicals: counts toward convergence only when paired with ≥1 fundamental signal.
+    fundamental = 0
+    # Insider: only count purchases >= INSIDER_MIN_TRADE_VALUE (qualifying_purchases from fetcher)
+    if signals.get("insider_trades", {}).get("qualifying_purchases", 0) > 0:
+        fundamental += 1
+    # Gov contracts: material_contract_count (value >= 1% of annual revenue) preferred; falls back to any contract
+    gov = signals.get("gov_contracts", {})
+    if gov.get("material_contract_count", gov.get("contract_count", 0)) > 0:
+        fundamental += 1
     if signals.get("options_flow", {}).get("options_signal_strength", "neutral") not in ("neutral", None):
-        meaningful += 1
-    if signals.get("sec_filings", {}).get("filing_count", 0) > 0:
-        meaningful += 1
+        fundamental += 1
+    if signals.get("sec_filings", {}).get("material_filing_count", 0) > 0:
+        fundamental += 1
+    if signals.get("market_data", {}).get("short_signal") in ("squeeze_setup", "covering"):
+        fundamental += 1
 
-    universe = gate["checks"]
+    tech = signals.get("technicals", {})
+    tech_fired = (
+        tech.get("rsi_signal", "neutral") != "neutral"
+        or tech.get("trend", "neutral") != "neutral"
+        or tech.get("volume_clustering", {}).get("detected", False)
+    )
+    # Technicals add +1 only when at least 1 fundamental signal is also present
+    meaningful = fundamental + (1 if tech_fired and fundamental >= 1 else 0)
+
     return {
         "ticker": ticker,
         "eligible": True,
         "universe_check": gate,
+        "fundamental_signals_fired": fundamental,
+        "technical_signal_fired": tech_fired,
         "signal_categories_fired": meaningful,
-        "minimum_required_for_debate": 2,
-        "proceed_to_debate": meaningful >= 2,
+        "minimum_required_for_debate": SIGNAL_CONVERGENCE_THRESHOLD,
+        "proceed_to_debate": meaningful >= SIGNAL_CONVERGENCE_THRESHOLD,
         "signals": signals,
     }
 
@@ -109,12 +140,40 @@ def run(watchlist: list[str]) -> dict:
     # Step 2: Sector rotation
     sectors = fetch_sector_rotation.fetch()
 
-    # Step 3: Scan each ticker
+    # Step 3: Scan each ticker in parallel
     ticker_results = []
-    for ticker in watchlist:
-        print(f"  Scanning {ticker}...", flush=True)
-        result = _scan_ticker(ticker.upper())
-        ticker_results.append(result)
+    log.info(f"Scanning {len(watchlist)} tickers in parallel (up to {_SCAN_WORKERS} workers)...")
+    print(f"  Scanning {len(watchlist)} tickers in parallel (up to {_SCAN_WORKERS} workers)...", flush=True)
+    with ThreadPoolExecutor(max_workers=_SCAN_WORKERS) as ex:
+        futures = {ex.submit(_scan_ticker, t.upper()): t.upper() for t in watchlist}
+        for future in as_completed(futures):
+            t = futures[future]
+            try:
+                result = future.result()
+            except Exception as e:
+                log.exception(f"[{t}] ticker scan raised unhandled exception")
+                result = {"ticker": t, "eligible": False, "fail_reasons": [str(e)]}
+            ticker_results.append(result)
+            print(f"  [{t}] done — signals={result.get('signal_categories_fired', 0)}", flush=True)
+
+    # Gate: macro blocks all new entries — still scan for data but suppress debate candidates
+    macro_blocked = not macro.get("macro_go", True) and macro.get("status") == "ok"
+    if macro_blocked:
+        for r in ticker_results:
+            r["proceed_to_debate"] = False
+            r["macro_blocked"] = True
+
+    # Annotate each ticker result with its sector and rotation status so the
+    # debate agent doesn't have to cross-reference the packet-level sector table.
+    sector_status_by_name = {
+        s["sector"]: s["rotation_status"]
+        for s in sectors.get("sectors", [])
+    } if isinstance(sectors, dict) else {}
+    for r in ticker_results:
+        market_data = r.get("signals", {}).get("market_data", {})
+        ticker_sector = market_data.get("sector", "")
+        r["sector"] = ticker_sector
+        r["sector_rotation_status"] = sector_status_by_name.get(ticker_sector, "unknown")
 
     debate_candidates = [r for r in ticker_results if r.get("proceed_to_debate")]
     ineligible = [r for r in ticker_results if not r.get("eligible")]
@@ -130,6 +189,7 @@ def run(watchlist: list[str]) -> dict:
         "tickers": ticker_results,
         "summary": {
             "macro_go": macro.get("macro_go", False),
+            "macro_blocked_all": macro_blocked,
             "macro_cautions": macro.get("macro_cautions", []),
             "debate_candidates": [r["ticker"] for r in debate_candidates],
             "ineligible_tickers": [{"ticker": r["ticker"], "reasons": r.get("fail_reasons", [])} for r in ineligible],
@@ -184,6 +244,11 @@ def _print_summary(packet: dict) -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
     parser = argparse.ArgumentParser()
     parser.add_argument("--watchlist", nargs="+", default=None, help="Tickers to scan (omit to use watchlist.json)")
     args = parser.parse_args()

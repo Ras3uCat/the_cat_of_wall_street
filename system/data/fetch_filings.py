@@ -23,6 +23,8 @@ HEADERS = {"User-Agent": EDGAR_USER_AGENT}
 TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 
+_TICKERS_CACHE_KEY = "edgar_company_tickers"
+
 MATERIAL_ITEMS = {
     "1.01": "Entry into material agreement",
     "2.01": "Completion of acquisition/disposal",
@@ -39,13 +41,22 @@ MATERIAL_ITEMS = {
 HIGH_SIGNAL_ITEMS = {"1.01", "2.01", "2.02", "5.02", "7.01"}
 
 
+def _cik_data() -> dict:
+    """Returns EDGAR company_tickers.json, cached to disk for 24h to avoid per-ticker downloads."""
+    cached = cache.get(_TICKERS_CACHE_KEY, "contracts")
+    if cached:
+        return cached
+    r = requests.get(TICKERS_URL, headers=HEADERS, timeout=15)
+    r.raise_for_status()
+    data = r.json()
+    cache.set(_TICKERS_CACHE_KEY, data)
+    return data
+
+
 def _get_cik(ticker: str) -> str | None:
     try:
-        r = requests.get(TICKERS_URL, headers=HEADERS, timeout=10)
-        r.raise_for_status()
-        data = r.json()
         ticker_upper = ticker.upper()
-        for entry in data.values():
+        for entry in _cik_data().values():
             if entry.get("ticker", "").upper() == ticker_upper:
                 return str(entry["cik_str"]).zfill(10)
         return None
@@ -54,7 +65,7 @@ def _get_cik(ticker: str) -> str | None:
 
 
 def fetch(ticker: str, days: int = 90) -> dict:
-    key = cache.cache_key("filings", ticker.upper())
+    key = cache.cache_key("filings", f"{ticker.upper()}_{days}d")
     cached = cache.get(key, "filings")
     if cached:
         return cached

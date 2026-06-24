@@ -17,13 +17,11 @@ same as clear.
 """
 import argparse
 import json
-import requests
 from datetime import date, timedelta
 import yfinance as yf
 import cache
-from config import EARNINGS_BUFFER_DAYS, EDGAR_SEARCH_BASE, EDGAR_USER_AGENT
-
-HEADERS = {"User-Agent": EDGAR_USER_AGENT}
+import fetch_filings
+from config import EARNINGS_BUFFER_DAYS
 
 
 def _yfinance_earnings(ticker: str) -> date | None:
@@ -58,21 +56,14 @@ def _yfinance_earnings(ticker: str) -> date | None:
 def _recent_earnings_8k(ticker: str) -> bool:
     """
     Returns True if a Form 8-K Item 2.02 (Results of Operations) was filed
-    within the last 14 days. If yes, the company just reported — next earnings
-    is safely ~90 days out, which raises confidence.
+    within the last 14 days. Uses the submissions API via fetch_filings —
+    accurate company match, no EDGAR EFTS text-search false positives.
     """
-    start_dt = (date.today() - timedelta(days=14)).isoformat()
-    params = {
-        "q": f'"{ticker.upper()}" "2.02"',
-        "dateRange": "custom",
-        "startdt": start_dt,
-        "forms": "8-K",
-    }
     try:
-        resp = requests.get(EDGAR_SEARCH_BASE, params=params, headers=HEADERS, timeout=10)
-        resp.raise_for_status()
-        hits = resp.json().get("hits", {}).get("hits", [])
-        return len(hits) > 0
+        result = fetch_filings.fetch(ticker, days=14)
+        if result.get("status") != "ok":
+            return False
+        return any(f.get("item") == "2.02" for f in result.get("filings", []))
     except Exception:
         return False
 

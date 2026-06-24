@@ -27,6 +27,15 @@ def fetch(ticker: str, period_days: int = 30) -> dict:
         current_price = round(float(hist["Close"].iloc[-1]), 2)
         market_cap = info.get("marketCap", 0) or 0
         short_pct = info.get("shortPercentOfFloat", None)
+        shares_short = info.get("sharesShort", None)
+        shares_short_prior = info.get("sharesShortPriorMonth", None)
+        short_ratio = info.get("shortRatio", None)
+        short_change_pct = (
+            round((shares_short - shares_short_prior) / shares_short_prior * 100, 1)
+            if shares_short and shares_short_prior else None
+        )
+        sector = info.get("sector") or ""
+        industry = info.get("industry") or ""
 
         price_history = [
             {"date": str(idx.date()), "open": round(r["Open"], 2), "high": round(r["High"], 2),
@@ -42,6 +51,18 @@ def fetch(ticker: str, period_days: int = 30) -> dict:
             "adv_30d": adv_30d,
             "adv_30d_readable": f"{adv_30d / 1e6:.1f}M shares/day",
             "short_interest_pct_float": round(short_pct * 100, 1) if short_pct else None,
+            "shares_short": shares_short,
+            "shares_short_prior_month": shares_short_prior,
+            "short_interest_change_pct": short_change_pct,
+            "short_ratio_days_to_cover": round(short_ratio, 1) if short_ratio else None,
+            "short_signal": (
+                "squeeze_setup" if (short_pct and short_pct > 0.20 and short_change_pct is not None and short_change_pct < -10)
+                else "covering" if (short_change_pct is not None and short_change_pct < -10)
+                else "building" if (short_change_pct is not None and short_change_pct > 10)
+                else "neutral"
+            ),
+            "sector": sector,
+            "industry": industry,
             "meets_adv_threshold": adv_30d >= MIN_ADV,
             "meets_market_cap_threshold": market_cap >= MIN_MARKET_CAP,
             "price_history": price_history,

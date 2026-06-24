@@ -28,6 +28,16 @@ MIN_MARKET_CAP = 500_000_000 # $500M
 EARNINGS_BUFFER_DAYS = 3     # no trade within 3 days of earnings
 PDT_DAY_TRADE_LIMIT = 3      # max day trades in 5 business days (under $25K equity)
 
+# Portfolio risk limits (referenced by account.py and Risk Manager)
+PORTFOLIO_HEAT_LIMIT_PCT = 5.5      # maximum total portfolio heat as a % of equity
+DEFAULT_STOP_LOSS_PCT = 4.0         # default per-position stop loss % when not specified
+SECTOR_CONCENTRATION_LIMIT = 0.30   # sector heat may not exceed 30% of total heat
+ACCOUNT_STATE_STALENESS_MINUTES = 90  # max age of account_state.json before raising error
+
+# Signal convergence
+SIGNAL_CONVERGENCE_THRESHOLD = 2    # minimum signal categories required to proceed to debate
+INSIDER_MIN_TRADE_VALUE = 50_000    # minimum open-market purchase size ($) to qualify as signal
+
 # Options signal thresholds
 OPTIONS_UNUSUAL_VOLUME_RATIO = 3.0  # volume/OI ratio to flag unusual activity
 OPTIONS_TOP_GAMMA_LEVELS = 5        # how many gamma levels to return
@@ -42,7 +52,7 @@ VIX_ELEVATED_MAX = 25
 SECTOR_ETFS = ["XLK", "XLF", "XLE", "XLV", "XLI", "XLY", "XLP", "XLU", "XLB", "XLRE", "XLC"]
 BENCHMARK_ETF = "SPY"
 
-# Optional FRED API key (for macro data fallback)
+# Optional FRED API key (for CPI/NFP release dates)
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 
 # SEC EDGAR user agent (required by EDGAR API policy)
@@ -51,7 +61,5 @@ EDGAR_USER_AGENT = os.getenv("EDGAR_USER_AGENT", "CatOfWallStreet skyjumper32@gm
 # USASpending.gov API base URL
 USASPENDING_BASE = "https://api.usaspending.gov/api/v2"
 
-# SEC EDGAR base URLs
-EDGAR_SEARCH_BASE = "https://efts.sec.gov/LATEST/search-index"
+# SEC EDGAR submissions API base (CIK-based — accurate company match)
 EDGAR_SUBMISSIONS_BASE = "https://data.sec.gov/submissions"
-EDGAR_COMPANY_SEARCH = "https://efts.sec.gov/LATEST/search-index"

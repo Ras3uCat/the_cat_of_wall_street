@@ -1,7 +1,7 @@
 # Gap Analysis — AI Trading System Strategy
 
 **Source:** Review of `ai-trading-system-strategy.md`, June 2026  
-**Last updated:** 2026-06-23 — full project review; new gaps GAP-13 through GAP-21 added  
+**Last updated:** 2026-06-23 — GAP-13/14/17/19 resolved; MANUAL APPROVAL mode fully wired  
 **Status:** Active — gaps being addressed in strategy doc updates
 
 Each gap below links to a future `01_active/` feature or is resolved in the strategy doc.
@@ -249,12 +249,12 @@ The good names for gov contract signals are the mid-tier defense/IT names: LDOS 
 | GAP-10 Cold start | Resolved in strategy doc §3.5, §12 |
 | GAP-11 Options scope | Resolved — long-only equities v1, strategy doc §12 |
 | GAP-12 Short selling scope | Resolved — long-only v1, strategy doc §12 |
-| GAP-13 No scheduled scan | **Open — Critical** — `/schedule` cron not yet created |
-| GAP-14 Single daily scan | **Open — High** — 3-scan cadence not yet implemented |
-| GAP-15 No exit monitoring | **Open — High** — midday heartbeat check not yet implemented |
-| GAP-16 Intraday signal blind spot | **Open — High** — resolved by GAP-14 midday scan |
-| GAP-17 Learning period activation | **Open — Medium** — pre-launch checklist needed before 2026-06-29 |
-| GAP-18 Cloud debate account state | **Open — Medium** — local session must re-run Risk Manager at execution |
-| GAP-19 Hardcoded macro dates | **Open — Medium** — 2027 dates needed before year-end |
+| GAP-13 No scheduled scan | **Resolved** — 3 cloud crons created (8 AM, 12:30 PM, 2:30 PM CT) |
+| GAP-14 Single daily scan | **Resolved** — midday heartbeat + PM entry window crons live |
+| GAP-15 No exit monitoring | **Partial** — midday heartbeat checks thesis invalidation (8-Ks/insider sells); stop-loss fill detection still manual |
+| GAP-16 Intraday signal blind spot | **Resolved** — midday heartbeat catches intraday 8-Ks and options refresh |
+| GAP-17 Learning period activation | **Resolved** — pre-launch checklist at `planning/features/01_active/gap17_pre_launch_checklist.md` |
+| GAP-18 Cloud debate account state | **Open — Medium** — local session Step 0 re-presents proposals; Risk Manager re-runs at execution |
+| GAP-19 Hardcoded macro dates | **Resolved** — FRED API wired in fetch_macro.py; FRED_API_KEY in .env and all 3 cloud crons |
 | GAP-20 Stop-loss fill detection | **Open — Low** — manual resolution acceptable at MVP scale |
 | GAP-21 Watchlist signal dilution | **Open — Low** — monitor signal hit rates over first 90 days |

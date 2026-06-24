@@ -7,12 +7,26 @@ This means the pipeline works offline / without Supabase configured.
 """
 import os
 import json
+import time
 from datetime import date
 from dotenv import load_dotenv
 
 load_dotenv()
 
 _client = None
+
+
+def _retry(fn, retries: int = 3, delay: float = 2.0):
+    """Run fn(), retrying up to `retries` times with exponential backoff on failure."""
+    last_exc = None
+    for attempt in range(retries):
+        try:
+            return fn()
+        except Exception as e:
+            last_exc = e
+            if attempt < retries - 1:
+                time.sleep(delay * (2 ** attempt))
+    raise last_exc
 
 
 def get_client():
@@ -30,6 +44,32 @@ def get_client():
     except Exception as e:
         print(f"[db] Supabase client init failed: {e} — falling back to local storage")
         return None
+
+
+def run_migration(sql: str) -> bool:
+    """
+    Run DDL via the Supabase Management API (requires SUPABASE_ACCESS_TOKEN in .env).
+    The service role key (SUPABASE_KEY) cannot run DDL through PostgREST.
+    """
+    import requests
+    token = os.getenv("SUPABASE_ACCESS_TOKEN", "")
+    url = os.getenv("SUPABASE_URL", "")
+    if not token or not url:
+        print("[db] run_migration requires SUPABASE_ACCESS_TOKEN in .env")
+        return False
+    project_ref = url.replace("https://", "").replace(".supabase.co", "")
+    try:
+        resp = requests.post(
+            f"https://api.supabase.com/v1/projects/{project_ref}/database/query",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            json={"query": sql},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        return True
+    except Exception as e:
+        print(f"[db] run_migration failed: {e}")
+        return False
 
 
 def is_configured() -> bool:
@@ -59,6 +99,7 @@ def upsert_scan(packet: dict) -> bool:
         "watchlist": [t["ticker"] for t in packet.get("tickers", [])],
         "eligible_tickers": [t["ticker"] for t in packet.get("tickers", []) if t.get("eligible")],
         "debate_candidates": summary.get("debate_candidates", []),
+        "macro_blocked_all": summary.get("macro_blocked_all", False),
         "ineligible_tickers": json.dumps(summary.get("ineligible_tickers", [])),
         "sector_rotation": json.dumps({
             "in_favor": sector.get("in_favor", []),
@@ -68,7 +109,7 @@ def upsert_scan(packet: dict) -> bool:
     }
 
     try:
-        client.table("scans").upsert(row).execute()
+        _retry(lambda: client.table("scans").upsert(row).execute())
         return True
     except Exception as e:
         print(f"[db] upsert_scan failed: {e}")
@@ -113,13 +154,15 @@ def insert_prediction(prediction: dict) -> bool:
         "entry_price": prediction.get("entry_price"),
         "entry_date": prediction.get("entry_date"),
         "position_size_pct": prediction.get("position_size_pct"),
-        "approval_status": prediction.get("approval_status"),
-        "equity_at_entry": prediction.get("equity_at_entry"),
-        "debate_narrative": prediction.get("debate_narrative"),
+        # fundamental_signals_fired / technical_signal_fired require migration 001
+        "fundamental_signals_fired": prediction.get("fundamental_signals_fired"),
+        "technical_signal_fired": prediction.get("technical_signal_fired"),
+        # approval_status / equity_at_entry / debate_narrative are written separately
+        # via update_prediction() after the debate completes — not in initial insert
     }
 
     try:
-        client.table("predictions").insert(row).execute()
+        _retry(lambda: client.table("predictions").insert(row).execute())
         return True
     except Exception as e:
         print(f"[db] insert_prediction failed: {e}")

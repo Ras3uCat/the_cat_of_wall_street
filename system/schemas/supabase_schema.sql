@@ -18,6 +18,7 @@ create table if not exists scans (
   watchlist               text[],
   eligible_tickers        text[],
   debate_candidates       text[],
+  macro_blocked_all       boolean,                    -- true when VIX>25 or FOMC day blocked all new entries
   ineligible_tickers      jsonb,                      -- [{ticker, reasons}]
   sector_rotation         jsonb,                      -- full sector rotation output
   created_at              timestamptz default now()
