@@ -14,7 +14,9 @@ Output:
 import argparse
 import json
 import logging
+import random
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from datetime import date
 from pathlib import Path
@@ -57,6 +59,8 @@ DARK_POOL_SIGNAL = {
 
 
 def _scan_ticker(ticker: str) -> dict:
+    # Stagger parallel workers to avoid hammering Yahoo Finance simultaneously
+    time.sleep(random.uniform(0, 5))
     gate = universe_check.check(ticker)
     if not gate["eligible"]:
         return {"ticker": ticker, "eligible": False, "fail_reasons": gate["fail_reasons"]}
