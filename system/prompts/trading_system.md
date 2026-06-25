@@ -652,6 +652,43 @@ Review the output and:
 
 ---
 
+### Weekly Watchlist Discovery (also run Mondays)
+
+Run after the self-improvement block above. Surfaces public companies with strong gov contract or insider signals not on the current watchlist.
+
+**Step 1 — Python discovery scan (contracts + insider sweep):**
+```bash
+.venv/bin/python system/data/discover.py
+```
+
+Options if you want to narrow focus:
+```bash
+.venv/bin/python system/data/discover.py --contracts-only
+.venv/bin/python system/data/discover.py --insiders-only
+.venv/bin/python system/data/discover.py --days-insiders 7   # wider insider window
+```
+
+**Step 2 — Robinhood MCP scan (run these MCP tools directly):**
+```
+get_scans                          → list available Robinhood scans
+run_scan {id: "top_movers"}        → large price/volume moves today
+run_scan {id: "unusual_volume"}    → unusual volume vs. 30-day avg
+run_scan {id: "52_week_high"}      → fresh 52-week breakouts
+```
+Cross-reference MCP results against the Python output: any ticker appearing in both (MCP momentum + contract/insider signal) is a high-priority candidate.
+
+**Step 3 — Evaluate each candidate:**
+1. Universe eligibility: `.venv/bin/python system/data/universe_check.py --ticker CANDIDATE`
+2. Which signals are firing? Is this a one-time event or a recurring pattern?
+3. Sector fit: does it complement the existing watchlist or duplicate it?
+4. Is it a better fit than the weakest current watchlist ticker?
+
+**Step 4 — Add approved candidates:**
+Edit `watchlist.json`. Add a note explaining why (what signal surfaced it, what makes it fit).
+Do not add more than 2-3 tickers per week — keep the watchlist focused.
+
+---
+
 ## SECTION 8 — Monthly Lessons-Learned Report
 
 Run on the first Monday of each month. Generate and display:
