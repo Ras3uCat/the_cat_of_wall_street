@@ -90,8 +90,10 @@ def upsert_scan(packet: dict) -> bool:
     sector = packet.get("sector_rotation", {})
 
     row = {
-        "id": f"scan_{packet['scan_date']}",
+        "id": packet.get("scan_id") or f"scan_{packet['scan_date']}",
         "scan_date": packet["scan_date"],
+        "session_type": packet.get("session_type", "pre_market"),
+        "outcome_summary": packet.get("outcome_summary"),
         "vix": macro.get("vix"),
         "vix_regime": macro.get("vix_regime"),
         "macro_go": macro.get("macro_go"),

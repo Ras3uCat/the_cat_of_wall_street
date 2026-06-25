@@ -44,9 +44,13 @@ export interface Prediction {
   updated_at: string
 }
 
+export type SessionType = 'pre_market' | 'midday' | 'pm_window'
+
 export interface Scan {
   id: string
   scan_date: string
+  session_type: SessionType | null
+  outcome_summary: string | null
   vix: number | null
   vix_regime: VixRegime | null
   macro_go: boolean | null

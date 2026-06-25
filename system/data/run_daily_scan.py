@@ -183,8 +183,12 @@ def run(watchlist: list[str]) -> dict:
     ineligible = [r for r in ticker_results if not r.get("eligible")]
     no_convergence = [r for r in ticker_results if r.get("eligible") and not r.get("proceed_to_debate")]
 
+    today = date.today().isoformat()
+    session_type = getattr(run, "_session_type", "pre_market")
     packet = {
-        "scan_date": date.today().isoformat(),
+        "scan_date": today,
+        "session_type": session_type,
+        "scan_id": f"scan_{today}_{session_type}",
         "macro_snapshot": macro,
         "sector_rotation": sectors,
         "watchlist_count": len(watchlist),
@@ -203,7 +207,7 @@ def run(watchlist: list[str]) -> dict:
 
     # Write to local disk
     PREDICTIONS_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = PREDICTIONS_DIR / f"scan_{date.today().isoformat()}.json"
+    out_path = PREDICTIONS_DIR / f"scan_{today}_{session_type}.json"
     out_path.write_text(json.dumps(packet, indent=2, default=str))
 
     # Sync to Supabase if configured
@@ -255,7 +259,12 @@ if __name__ == "__main__":
     )
     parser = argparse.ArgumentParser()
     parser.add_argument("--watchlist", nargs="+", default=None, help="Tickers to scan (omit to use watchlist.json)")
+    parser.add_argument("--session-type", default="pre_market",
+                        choices=["pre_market", "midday", "pm_window"],
+                        help="Which session this scan belongs to")
     args = parser.parse_args()
+
+    run._session_type = args.session_type
 
     watchlist = args.watchlist or _load_default_watchlist()
     if not watchlist:

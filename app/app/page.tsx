@@ -145,6 +145,17 @@ export default async function Dashboard() {
         </Link>
       </div>
 
+      <Link href="/scans" className="block brand-card p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="section-label">CLOUD RUNS</span>
+            <p className="font-play uppercase tracking-wider text-sm text-brand-white mt-1">Scan History</p>
+            <p className="font-space text-[9px] text-brand-white/25 tracking-wider mt-0.5">PRE-MKT · MIDDAY · PM</p>
+          </div>
+          <span className="text-brand-white/25 font-orbitron text-lg">›</span>
+        </div>
+      </Link>
+
       <p className="text-center font-space text-[9px] tracking-widest pt-1"
         style={{ color: 'rgba(232,254,255,0.12)' }}>
         Sync complete △ M3OW
