@@ -12,6 +12,7 @@ PREDICTIONS_DIR = PROJECT_ROOT / "logs" / "predictions"
 # Cache TTLs in seconds
 CACHE_TTL = {
     "market":    600,     # 10 min — intraday price data
+    "technicals": 600,   # 10 min — same as market; named separately for clarity
     "options":   1800,    # 30 min — options chain
     "insider":   14400,   # 4 hr  — EDGAR Form 4 (not real-time)
     "contracts": 86400,   # 24 hr — USASpending.gov

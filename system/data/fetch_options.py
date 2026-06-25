@@ -11,10 +11,17 @@ data service such as Unusual Whales. This is noted in every output.
 """
 import argparse
 import json
+import requests
 from datetime import date
 import yfinance as yf
 import cache
 from config import OPTIONS_UNUSUAL_VOLUME_RATIO, OPTIONS_TOP_GAMMA_LEVELS
+
+_BARCHART_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
+_BARCHART_TIMEOUT = 12
 
 PROXY_NOTE = "Volume/OI proxy only — sweep detection requires paid tier (e.g. Unusual Whales)"
 CALIBRATION_NOTE = (
@@ -53,6 +60,95 @@ def _unusual_contracts(df, side: str, expiry: str) -> list[dict]:
         }
         for _, row in hits.iterrows()
     ]
+
+
+def _fetch_barchart_unusual(ticker: str) -> list[dict]:
+    """
+    Fetch unusual options activity from Barchart.com.
+
+    Key improvement over Yahoo Finance vol/OI proxy: returns actual premium size,
+    which distinguishes institutional sweeps from routine elevated volume.
+    A $5M premium in calls is fundamentally different from $50K with the same vol/OI ratio.
+    Falls back to [] on any error — caller uses Yahoo Finance proxy instead.
+    """
+    try:
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": _BARCHART_UA,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        })
+        # First request establishes session cookies including XSRF-TOKEN
+        session.get(
+            f"https://www.barchart.com/stocks/quotes/{ticker.upper()}/options-unusual-activity",
+            timeout=_BARCHART_TIMEOUT,
+        )
+        xsrf = session.cookies.get("XSRF-TOKEN", "")
+        if not xsrf:
+            return []
+
+        resp = session.get(
+            "https://www.barchart.com/proxies/core-api/v1/options/unusual-activity",
+            params={
+                "symbols": ticker.upper(),
+                "fields": "symbol,expirationDate,strikePrice,side,volume,openInterest,volOIRatio,premium,tradeTime,volatility",
+                "raw": "1",
+                "page": "1",
+                "limit": "50",
+                "orderBy": "volume",
+                "orderDir": "desc",
+            },
+            headers={
+                "X-XSRF-TOKEN": xsrf,
+                "Referer": f"https://www.barchart.com/stocks/quotes/{ticker.upper()}/options-unusual-activity",
+                "Accept": "application/json",
+            },
+            timeout=_BARCHART_TIMEOUT,
+        )
+        rows = resp.json().get("data", []) or []
+        if not rows:
+            return []
+
+        def _raw(v):
+            return (v.get("raw") if isinstance(v, dict) else v) or 0
+
+        return [
+            {
+                "source": "barchart",
+                "expiry": str(_raw(r.get("expirationDate", ""))),
+                "strike": float(_raw(r.get("strikePrice", 0))),
+                "side": str(_raw(r.get("side", ""))).lower(),
+                "volume": int(_raw(r.get("volume", 0))),
+                "open_interest": int(_raw(r.get("openInterest", 0))),
+                "vol_oi_ratio": round(float(_raw(r.get("volOIRatio", 0))), 1),
+                "premium": round(float(_raw(r.get("premium", 0))), 0),
+                "implied_volatility": round(float(_raw(r.get("volatility", 0))), 1),
+                "trade_time": str(_raw(r.get("tradeTime", ""))),
+            }
+            for r in rows
+        ]
+    except Exception:
+        return []
+
+
+def _classify_barchart_strength(calls: list[dict], puts: list[dict], pcr: float) -> str:
+    """
+    Signal classification using actual premium size from Barchart.
+    Remove 'proxy' from label names — this is real unusual activity data.
+    """
+    call_premium = sum(c.get("premium", 0) for c in calls)
+    put_premium  = sum(p.get("premium", 0) for p in puts)
+    high_ratio_calls = [c for c in calls if c.get("vol_oi_ratio", 0) >= 5.0]
+    high_ratio_puts  = [p for p in puts  if p.get("vol_oi_ratio", 0) >= 5.0]
+
+    if len(high_ratio_calls) >= 2 and call_premium > put_premium and pcr < 0.7:
+        return "strong_bullish"
+    if len(high_ratio_calls) >= 1 and pcr < 0.8:
+        return "moderate_bullish"
+    if len(high_ratio_puts) >= 2 and put_premium > call_premium and pcr > 1.3:
+        return "strong_bearish"
+    if len(high_ratio_puts) >= 1 and pcr > 1.0:
+        return "moderate_bearish"
+    return "neutral"
 
 
 def fetch(ticker: str) -> dict:
@@ -120,15 +216,39 @@ def fetch(ticker: str) -> dict:
             "unusual_volume_puts": all_unusual_puts,
             "gamma_levels": top_gamma,
             "options_signal_strength": _classify_strength(len(all_unusual_calls), len(all_unusual_puts), pcr or 1.0),
+            "options_source": "yfinance_proxy",
             "note": PROXY_NOTE,
             "calibration_note": CALIBRATION_NOTE,
             "status": "ok",
         }
+
+        # Try Barchart for premium-weighted unusual activity — replaces vol/OI proxy if available
+        barchart = _fetch_barchart_unusual(ticker)
+        if barchart:
+            bc_calls = [c for c in barchart if c["side"] == "call"]
+            bc_puts  = [p for p in barchart if p["side"] == "put"]
+            result["unusual_volume_calls"]    = bc_calls
+            result["unusual_volume_puts"]     = bc_puts
+            result["options_signal_strength"] = _classify_barchart_strength(bc_calls, bc_puts, pcr or 1.0)
+            result["options_source"]          = "barchart"
+            result["note"] = (
+                f"Barchart unusual activity — premium-weighted signal "
+                f"({len(bc_calls)} unusual calls, {len(bc_puts)} unusual puts). "
+                "Not a vol/OI proxy — treat signal strength labels at face value."
+            )
+            result.pop("calibration_note", None)
+
     except Exception as e:
         result = {"ticker": ticker.upper(), "status": "error", "error": str(e), "note": PROXY_NOTE}
 
     if result["status"] == "ok":
         cache.set(key, result)
+        try:
+            import db
+            from datetime import date as _date
+            db.upsert_options_flow(ticker, _date.today().isoformat(), result)
+        except Exception:
+            pass
     return result
 
 

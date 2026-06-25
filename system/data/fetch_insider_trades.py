@@ -16,11 +16,19 @@ import argparse
 import json
 import xml.etree.ElementTree as ET
 import requests
+from bs4 import BeautifulSoup as _BS
 from datetime import date, timedelta
 import cache
 from config import EDGAR_USER_AGENT, INSIDER_MIN_TRADE_VALUE
 
 HEADERS = {"User-Agent": EDGAR_USER_AGENT}
+
+_OPENINSIDER_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
+# Titles that indicate C-suite level (CEO/CFO/COO etc.) — OpenInsider provides full title text
+_C_SUITE_TITLES = {"CEO", "CFO", "COO", "CTO", "CRO", "CAO", "PRESIDENT", "CHAIRMAN", "EVP", "SVP"}
 TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 ARCHIVES_URL = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{doc}"
@@ -140,6 +148,71 @@ def _parse_form4_xml(cik: str, accession: str, primary_doc: str) -> list[dict]:
         return []
 
 
+def _fetch_openinsider(ticker: str, days: int) -> dict:
+    """
+    Supplement EDGAR Form 4 data with OpenInsider's pre-processed view.
+
+    Key improvements over raw EDGAR XML:
+    - Reliable C-suite role detection (CEO/CFO/COO vs generic "Officer")
+    - ΔOwn% shows conviction relative to total holdings (not just raw share count)
+    - Pre-filters purchase vs sale so parsing is simpler and less error-prone
+
+    Returns {} on any error — EDGAR data is still the primary source.
+    """
+    try:
+        url = (
+            f"https://openinsider.com/screener?s={ticker.upper()}"
+            f"&fd={days}&xp=1&xs=1&sortcol=0&cnt=40&action=1"
+        )
+        resp = requests.get(url, headers={"User-Agent": _OPENINSIDER_UA}, timeout=15)
+        soup = _BS(resp.text, "html.parser")
+
+        # Find the data table — robustly: first table that has "Filing Date" in its headers
+        table = None
+        for t in soup.find_all("table"):
+            ths = [th.text.strip() for th in t.find_all("th")]
+            if "Filing Date" in ths:
+                table = t
+                break
+        if not table:
+            return {"openinsider_status": "no_table"}
+
+        header_cells = [th.text.strip() for th in table.find_all("th")]
+        purchases = []
+        for tr in table.find_all("tr")[1:]:
+            cells = [td.text.strip() for td in tr.find_all("td")]
+            if len(cells) < 6:
+                continue
+            row = dict(zip(header_cells, cells))
+            trade_type = row.get("Trade Type", "")
+            if "P" not in trade_type and "Purchase" not in trade_type.lower():
+                continue
+
+            title_upper = row.get("Title", "").upper()
+            is_c_suite = any(t in title_upper for t in _C_SUITE_TITLES)
+            purchases.append({
+                "filer": row.get("Insider Name", ""),
+                "title": row.get("Title", ""),
+                "is_c_suite": is_c_suite,
+                "trade_date": row.get("Trade Date", ""),
+                "price": row.get("Price", ""),
+                "qty": row.get("Qty", ""),
+                "value": row.get("Value", ""),
+                "delta_own_pct": row.get("ΔOwn", ""),
+            })
+
+        c_suite = [p for p in purchases if p["is_c_suite"]]
+        return {
+            "openinsider_status": "ok",
+            "total_purchases_found": len(purchases),
+            "c_suite_purchases": c_suite,
+            "c_suite_purchase_count": len(c_suite),
+            "has_c_suite_conviction": len(c_suite) >= 1,
+        }
+    except Exception as e:
+        return {"openinsider_status": "error", "error": str(e)}
+
+
 def fetch(ticker: str, days: int = 14) -> dict:
     key = cache.cache_key("insider", f"{ticker.upper()}_{days}d")
     cached = cache.get(key, "insider")
@@ -225,6 +298,12 @@ def fetch(ticker: str, days: int = 14) -> dict:
         result = {"ticker": ticker.upper(), "status": "error", "error": str(e)}
 
     if result.get("status") == "ok":
+        # Cross-reference EDGAR data with OpenInsider for better C-suite classification
+        oi = _fetch_openinsider(ticker, days)
+        result["openinsider_supplement"] = oi
+        if oi.get("openinsider_status") == "ok":
+            result["c_suite_confirmed_purchases"] = oi.get("c_suite_purchase_count", 0)
+            result["has_c_suite_conviction"] = oi.get("has_c_suite_conviction", False)
         cache.set(key, result)
     return result
 

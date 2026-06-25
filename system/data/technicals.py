@@ -85,7 +85,7 @@ def _liquidity_trap(hist: pd.DataFrame, window: int = 3) -> dict:
 
 def compute(ticker: str) -> dict:
     key = cache.cache_key("technicals", ticker.upper())
-    cached = cache.get(key, "market")
+    cached = cache.get(key, "technicals")
     if cached:
         return cached
 

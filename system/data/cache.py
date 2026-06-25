@@ -25,15 +25,26 @@ def get(key: str, source: str) -> dict | None:
         return None
 
 
+def get_ignoring_ttl(key: str) -> dict | None:
+    """Return cached data regardless of TTL — for stale fallbacks only."""
+    p = _path(key)
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text()).get("data")
+    except (json.JSONDecodeError, KeyError):
+        return None
+
+
 def set(key: str, data: dict) -> None:
     """Write data to cache with current timestamp."""
     payload = {"_cached_at": time.time(), "data": data}
     _path(key).write_text(json.dumps(payload, indent=2, default=str))
 
 
-def cache_key(source: str, identifier: str = "") -> str:
+def cache_key(source: str, identifier: str = "", for_date: str = "") -> str:
     """Generate a cache key. identifier is ticker or date or empty for market-wide."""
     from datetime import date
-    today = date.today().isoformat()
-    parts = [source, identifier, today] if identifier else [source, today]
+    d = for_date or date.today().isoformat()
+    parts = [source, identifier, d] if identifier else [source, d]
     return "_".join(p for p in parts if p)

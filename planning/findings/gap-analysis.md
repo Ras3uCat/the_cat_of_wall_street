@@ -1,7 +1,7 @@
 # Gap Analysis — AI Trading System Strategy
 
 **Source:** Review of `ai-trading-system-strategy.md`, June 2026  
-**Last updated:** 2026-06-23 — GAP-13/14/17/19 resolved; MANUAL APPROVAL mode fully wired  
+**Last updated:** 2026-06-24 — GAP-22–30 addressed; GAP-31–34 added and resolved; see resolution tracking below  
 **Status:** Active — gaps being addressed in strategy doc updates
 
 Each gap below links to a future `01_active/` feature or is resolved in the strategy doc.
@@ -26,6 +26,24 @@ Without a defined stock universe, signal scanning is unbounded and will generate
 
 **Resolved in strategy doc:** Section 2.6 added.  
 Criteria: 500K+ ADV, $500M+ market cap, no earnings within 3 days, no wash-sale conflicts, no PDT-risky tickers.
+
+---
+
+### GAP-22: `resolve_prediction` Misused at Entry — Pre-Launch Blocker  ← NEW / CRITICAL
+
+`system/prompts/trading_system.md` Section 11 Execution Flow Step 6 tells Claude to call `db.resolve_prediction()` to record entry details (`executed`, `entry_price`, `entry_date`, `position_size_pct`). But `db.py:198` unconditionally appends `"resolved": True` to every `resolve_prediction` call:
+
+```python
+update = {**resolution, "resolved": True}
+```
+
+Recording entry details this way marks the prediction as fully resolved the moment the position is opened. Exit management Triggers A–G all query `resolved: False` — the system will be blind to any live position recorded this way, silently skipping all trailing stop and thesis-invalidation checks.
+
+**Fix:** Section 11 Execution Flow Step 6 must use `db.update_prediction()` (partial field update, no `resolved` flag) instead of `db.resolve_prediction()`. `resolve_prediction` is exit-only.
+
+**Priority:** Must fix before 2026-06-29 go-live. First executed trade will otherwise disappear from all exit checks.
+
+**Resolved (2026-06-24):** Section 11 Execution Flow Step 6 changed from `db.resolve_prediction()` to `db.update_prediction()`. `resolve_prediction` is now exit-only — it is never called at entry.
 
 ---
 
@@ -121,6 +139,26 @@ Exit triggers (Section 12, Triggers A–G) require Ryan to manually open a local
 
 ---
 
+### GAP-23: Section 1 Step 7 Circuit Breaker Runs After Debates — Sizing Not Affected  ← NEW / HIGH
+
+Section 1's session startup runs Step 6 (full debate sequence) before Step 7 (losing streak and drawdown circuit breaker). The losing streak rule reduces max position size to 7% for the session — but this reduction is applied *after* the debates have already recommended normal position sizes. In AUTO-EXECUTE mode, the trade executes with the debate's sizing before the circuit breaker is even checked.
+
+**Fix:** Move Step 7 to run before Step 6 in the Section 1 protocol, or add an explicit losing-streak check at the top of each Role 6 (Risk Manager) debate section so the reduced size cap is applied during sizing.
+
+**Resolved (2026-06-24):** Section 1 Steps 6 and 7 swapped. Circuit breaker (losing streak / drawdown check) is now Step 6 and runs before the debate sequence, which is now Step 7. Added note: "Run this before debates — the position size cap reduction must be known before sizing recommendations are made."
+
+---
+
+### GAP-24: No Market Hours Gate in Local Execution Session  ← NEW / HIGH
+
+Section 11's Local Session Startup Protocol has no check that the market is currently open before executing approved trades. If Ryan receives a push notification at 4 PM and opens a local session, the system will attempt to place a limit buy on a closed market. Robinhood may accept the order as a next-open order — which is a fundamentally different execution than what the debate assumed (entry at a specific technical window).
+
+**Fix:** Add a market-hours check at the top of the Local Session Startup (same logic as Section 1 Step 1). If market is closed: surface approved predictions for review but do not execute until next open. Flag the entry window from the debate — if the technical window (e.g., 9:45–10:30 AM) has already passed, re-run the Technical Analyst before executing.
+
+**Resolved (2026-06-24):** "Before Step 0 — Market hours gate" block added to the top of Section 11 Local Session Startup Protocol. Closed-market execution is blocked. If the debate's entry window (9:45–10:30 AM or 3:00–3:45 PM CT) has already passed, Technical Analyst re-runs before execution.
+
+---
+
 ### GAP-16: Intraday Breaking Signal Blind Spot  ← NEW / HIGH
 If a material 8-K files at 11 AM, an insider C-suite purchase posts at 1 PM, or a new DoD contract award appears mid-day, the current architecture won't catch it until the next morning's 8 AM scan — up to 21 hours later. By then:
 - The immediate price reaction is already priced in
@@ -186,6 +224,8 @@ The cloud scan session cannot access Robinhood MCP. This means:
 
 **Resolution:** The local session's Step 0 must always re-run the Risk Manager heat check with live Robinhood account data before executing any approved trade — regardless of what the cloud debate recommended. Document this as a hard rule in Section 11.
 
+**Resolved (2026-06-24):** Step 0 item 2 replaced with a two-part check: (2a) thesis validity re-check, (2b) live portfolio heat re-check as a hard rule — if executing the approved prediction would push total heat above the 5–6% cap, execution is rejected and logged as `heat_cap_breach_at_local_execution`. Cloud debate approval cannot override the live heat check. Added note that Step 0 depends on the Session Startup block (account state fetch) having run first.
+
 ---
 
 ### GAP-19: FOMC / CPI / NFP Dates Hardcoded — Will Break in 2027  ← NEW / MEDIUM
@@ -194,6 +234,32 @@ The cloud scan session cannot access Robinhood MCP. This means:
 **Impact:** The macro gate's binary event proximity checks will fail open (no block) in 2027. 
 
 **Fix:** Add 2027 dates before year-end, or source them from a live API (Fed Reserve calendar at federalreserve.gov, BLS schedule at bls.gov/schedule/). The latter is more durable but adds a network dependency to the macro module.
+
+**Resolved (2026-06-24):** `FOMC_DATES_2026` renamed to `FOMC_DATES`; 2027 FOMC dates added through 2027-12-16. CPI and NFP remain sourced from FRED. Update `FOMC_DATES` again before year-end 2027.
+
+---
+
+### GAP-25: Finnhub Fallback Returns Wrong Volume in `price_history`  ← NEW / MEDIUM
+
+In `fetch_market_data.py:_fetch_from_finnhub`, the single-day `price_history` entry sets `"volume": adv_10d` (the 10-day average volume), not today's actual session volume. Finnhub's `/quote` endpoint returns `v` (volume) but this field is not used.
+
+`technicals.py` consumes `price_history` volume for `_volume_clustering` (needs ratio of recent vs. 30-day avg) and `_liquidity_trap` (needs recent volume vs. ADV). When Finnhub is the data source, both signals receive the same value for recent volume and historical average — the ratio will always be ~1.0, making both detections inoperative.
+
+**Fix:** In `_fetch_from_finnhub`, set `"volume": int(quote.get("v") or 0)` instead of `adv_10d`. Finnhub only provides today's data so volume_clustering still won't work correctly (needs 5+ days), but at minimum the volume field will reflect actual data.
+
+**Resolved (2026-06-24):** `fetch_market_data.py:_fetch_from_finnhub` updated — `price_history[0]["volume"]` now uses `int(quote.get("v") or 0)` (Finnhub's actual session volume) instead of `adv_10d`.
+
+---
+
+### GAP-26: `update_prediction` and `resolve_prediction` Lack Retry Logic  ← NEW / MEDIUM
+
+`db.py:insert_prediction` wraps its Supabase call in `_retry(fn, retries=3)` with exponential backoff. `update_prediction` (line 172) and `resolve_prediction` (line 188) make bare, unretried calls. A transient Supabase timeout at exit or resolution silently drops outcome data — `direction_correct`, `actual_move_pct`, `lessons`, and `accuracy_score` are permanently lost.
+
+These fields are the primary inputs to the weekly self-improvement protocol (Section 7). Losing them degrades signal calibration over time.
+
+**Fix:** Wrap both calls in `_retry(lambda: client.table(...).update(...).execute())` identically to `insert_prediction`.
+
+**Resolved (2026-06-24):** Both `update_prediction` and `resolve_prediction` in `db.py` now wrap their Supabase calls in `_retry(lambda: ...)` with the same 3-attempt exponential backoff as `insert_prediction`.
 
 ---
 
@@ -233,6 +299,99 @@ The good names for gov contract signals are the mid-tier defense/IT names: LDOS 
 
 ---
 
+### GAP-27: `technicals.py` Uses Wrong Cache Source Key  ← NEW / LOW
+
+`technicals.py:compute` calls `cache.get(key, "market")` using `"market"` as the TTL source. There is no `"technicals"` entry in `config.CACHE_TTL`. The system prompt requires technicals to be "always recalculated live — never carried over from a prior session," but the effective TTL is the 10-minute market TTL, not a dedicated value.
+
+This is low-risk in practice (10 min is fine within a session), but adding a `"technicals": 600` entry to `CACHE_TTL` and changing the source key to `"technicals"` makes the behavior explicit and independently configurable without touching `technicals.py`.
+
+**Resolved (2026-06-24):** `"technicals": 600` added to `CACHE_TTL` in `config.py`. `technicals.py:compute` updated to use `"technicals"` as the source key instead of `"market"`.
+
+---
+
+### GAP-28: `fetch_market_data.period_days` Silently Ignored When Cache Is Warm  ← NEW / LOW
+
+`fetch_market_data.fetch(ticker, period_days=30)` generates its cache key as `cache.cache_key("market", ticker)` — `period_days` is not included. A call with `period_days=60` returns a 30-day cache hit without warning. The parameter is non-functional once the cache is warm.
+
+Either include `period_days` in the cache key, or remove the parameter entirely (the system always uses 30 days). The current signature implies flexible behavior it doesn't provide.
+
+**Resolved (2026-06-24):** Cache key now includes `period_days` — `cache.cache_key("market", f"{ticker.upper()}_{period_days}d")`. Calls with different `period_days` values no longer collide.
+
+---
+
+### GAP-29: `fetch_options.py` Calls `db.upsert_options_flow()` — Function Does Not Exist  ← NEW / MEDIUM
+
+`fetch_options.py:135` calls `db.upsert_options_flow(ticker, ...)` after a successful fetch. This function is not defined in `db.py`. The call raises `AttributeError` silently (wrapped in `try/except: pass`), so options flow data is never persisted to Supabase.
+
+The code implies options flow should be tracked per-ticker per-day (presumably for the `signal_accuracy` view and historical combo analysis), but the silent failure means this has never worked. Any future analysis of options signal accuracy will have no data to draw from.
+
+**Fix:** Either add `upsert_options_flow` to `db.py` (and create the target table/column in Supabase), or remove the dead call from `fetch_options.py` if options flow persistence isn't yet planned.
+
+**Resolved (2026-06-24):** `upsert_options_flow` exists in `db.py` (lines 283–303). Migration `005_add_market_history_tables.sql` creates the `options_flow_history` table with the correct schema. **Pending:** apply migration to Supabase to activate persistence.
+
+---
+
+### GAP-30: `insert_prediction` Drops `approval_status`, `equity_at_entry`, `debate_narrative`  ← NEW / MEDIUM
+
+`db.py:insert_prediction` explicitly excludes three fields: `approval_status`, `equity_at_entry`, and `debate_narrative`, noting they should be "written separately via `update_prediction()` after the debate completes." However, system prompt Section 5 passes all three to `insert_prediction(...)` and never calls `update_prediction` afterwards.
+
+Result: every prediction record in Supabase has `approval_status = null`, `equity_at_entry = null`, and `debate_narrative = null`. This silently breaks:
+- The web app P&L calculation (uses `equity_at_entry`)  
+- The local session Step 0 query for approved trades (filters on `approval_status = 'approved'`, which will never match)
+- Historical debate review (no narrative text stored)
+
+**Fix:** Section 5 of the system prompt needs a `db.update_prediction(pred_id, {...})` call immediately after `insert_prediction`, setting these three fields. Alternatively, add them directly to the `insert_prediction` row dict in `db.py` and remove the two-step comment.
+
+**Priority:** The Step 0 query for approved trades is broken by this — it filters on `approval_status = 'approved'` but that field is always null. Any approved cloud prediction will never surface in a local session's Step 0 check.
+
+**Resolved (2026-06-24):** `approval_status`, `equity_at_entry`, and `debate_narrative` added directly to the `insert_prediction` row dict in `db.py`. The "written separately" comment removed. All three fields are now written on initial insert — no two-step process required.
+
+---
+
+---
+
+### GAP-31: Learning Period Too Short — 7 Days Insufficient for Cold-Start Calibration  ← NEW / HIGH
+
+The original learning period (2026-06-22 through 2026-06-28) provided 7 days before AUTO-EXECUTE went live. At 1–2 scans per trading day that pass all gates, this yields 5–10 raw predictions with zero resolved outcomes. The strategy doc requires 30+ resolved predictions before any cold-start calibration, and resolution takes 3–30 days per trade depending on the predicted timeframe.
+
+**Risk:** AUTO-EXECUTE engaging with no empirical basis for the confidence thresholds.
+
+**Resolved (2026-06-24):** Learning period extended to 2026-08-20 (60 days from start). Execution resumes 2026-08-21.
+
+---
+
+### GAP-32: Drawdown Circuit Breaker Re-Enable Undefined  ← NEW / HIGH
+
+Section 6 states "halt all trading, require manual re-enable" when 15% drawdown is reached. "Manual re-enable" had no concrete mechanism — no file, no flag, no command. In AUTO-EXECUTE mode, this means the system would halt but there was no defined path to resume (or confirm the halt persisted across sessions).
+
+**Resolved (2026-06-24):** `logs/trading_halt.json` is now the persistent halt flag. `account.py` exposes `halt_trading()`, `resume_trading()`, `is_trading_halted()`. Session startup checks for halt before running any debates. Ryan resumes by typing the exact phrase "I have reviewed the drawdown. Resume trading." Halt state survives session restarts.
+
+---
+
+### GAP-33: Confidence Score Component 2 Self-Graded by the Same Agent  ← NEW / HIGH
+
+The "Debate Outcome Quality" component (0–25 pts) was scored by the Trader agent using a subjective rating ("bullish dominant / roughly even / bearish stronger"). The same LLM that just conducted the debate was grading its own output. An LLM that has formed a directional view will systematically inflate this component.
+
+**Resolved (2026-06-24):** Component 2 replaced with 5 binary gates (A–E), each with fixed point values. No subjective rating scale. Gate B introduces a -8 penalty for unanswered material bearish risks, creating an active incentive to surface objections rather than suppress them. Max is still 25.
+
+---
+
+### GAP-34: No Adversarial Challenge Before Execution  ← NEW / HIGH
+
+Every ENTER recommendation came from a single LLM context where the bull thesis was built and then accepted by the same reasoning chain. There was no mandatory adversarial check outside that chain before execution.
+
+**Resolved (2026-06-24):** Adversarial Reviewer added as a mandatory step between Role 7's ENTER recommendation and Section 4 execution. The reviewer is explicitly framed as a short-seller arguing against the pitch. A CHALLENGE finding reduces Component 2 by 8 points and triggers a threshold recheck — potentially converting ENTER to SKIP (`skip_reason: adversarial_review_downgrade`).
+
+---
+
+### GAP-35: Fractional Shares Not Handled — Execution Breaks at $100 Account Size  ← NEW / HIGH
+
+The execution flow used `floor((equity × size_pct) / price)` to calculate whole shares. At a $100 account with 10–15% position sizes, the notional is $10–$15. At NVDA ($130) or MSFT ($430), `floor()` returns 0 — the order would never fill. The system was untradeable at the intended starting account size.
+
+**Resolved (2026-06-24):** Execution flow updated to compute `notional` (dollar amount) and `fractional_qty` (decimal shares). Robinhood supports fractional share orders. Examples: 0.076 shares of NVDA at $130 for a $10 notional.
+
+---
+
 ## Resolution Tracking
 
 | Gap | Status |
@@ -254,7 +413,21 @@ The good names for gov contract signals are the mid-tier defense/IT names: LDOS 
 | GAP-15 No exit monitoring | **Partial** — midday heartbeat checks thesis invalidation (8-Ks/insider sells); stop-loss fill detection still manual |
 | GAP-16 Intraday signal blind spot | **Resolved** — midday heartbeat catches intraday 8-Ks and options refresh |
 | GAP-17 Learning period activation | **Resolved** — pre-launch checklist at `planning/features/01_active/gap17_pre_launch_checklist.md` |
-| GAP-18 Cloud debate account state | **Open — Medium** — local session Step 0 re-presents proposals; Risk Manager re-runs at execution |
-| GAP-19 Hardcoded macro dates | **Resolved** — FRED API wired in fetch_macro.py; FRED_API_KEY in .env and all 3 cloud crons |
+| GAP-18 Cloud debate account state | **Resolved** — Step 0 now has explicit heat re-check (2b) with live Robinhood data; cloud approval does not override live heat check |
+| GAP-19 Hardcoded macro dates | **Resolved** — `FOMC_DATES_2026` renamed `FOMC_DATES`; 2027 dates added through 2027-12-16 |
 | GAP-20 Stop-loss fill detection | **Open — Low** — manual resolution acceptable at MVP scale |
 | GAP-21 Watchlist signal dilution | **Open — Low** — monitor signal hit rates over first 90 days |
+| GAP-22 resolve_prediction at entry | **Resolved** — Section 11 Execution Flow Step 6 changed to `db.update_prediction`; `resolve_prediction` is exit-only |
+| GAP-23 Step 7 after debates | **Resolved** — Section 1 Steps 6/7 swapped; circuit breaker now precedes debate sequence |
+| GAP-24 No market hours check (local) | **Resolved** — "Before Step 0 — Market hours gate" added to Local Session Startup Protocol |
+| GAP-25 Finnhub volume wrong | **Resolved** — `_fetch_from_finnhub` now uses `int(quote.get("v") or 0)` for session volume |
+| GAP-26 Missing retry on updates | **Resolved** — `update_prediction` and `resolve_prediction` both wrapped in `_retry()` |
+| GAP-27 Technicals cache source key | **Resolved** — `"technicals": 600` added to `CACHE_TTL`; `technicals.py` updated to use `"technicals"` key |
+| GAP-28 period_days not in cache key | **Resolved** — cache key now includes `period_days` as `{ticker}_{period_days}d` |
+| GAP-29 upsert_options_flow missing | **Resolved** — function exists in `db.py` (lines 283–303); migration `005_add_market_history_tables.sql` covers the table. Apply migration to activate. |
+| GAP-30 insert_prediction drops 3 fields | **Resolved** — `approval_status`, `equity_at_entry`, `debate_narrative` added directly to `insert_prediction` row dict |
+| GAP-31 Learning period too short | **Resolved** — Extended to 2026-08-20 (60 days); execution resumes 2026-08-21 |
+| GAP-32 Drawdown re-enable undefined | **Resolved** — `logs/trading_halt.json` flag; `account.py` halt/resume/check functions; session startup checks halt first |
+| GAP-33 Confidence score self-graded | **Resolved** — Component 2 replaced with 5 binary gates (A–E); Gate B penalizes unanswered bearish risks |
+| GAP-34 No adversarial challenge | **Resolved** — Adversarial Reviewer (Role 8) added as mandatory pre-execution step; CHALLENGE drops Component 2 by 8 pts |
+| GAP-35 Fractional shares not handled | **Resolved** — Execution flow now uses `notional` + `fractional_qty`; works at $100 account size |

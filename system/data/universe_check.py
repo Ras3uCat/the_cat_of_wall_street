@@ -24,28 +24,43 @@ from config import MIN_ADV, MIN_MARKET_CAP, PDT_DAY_TRADE_LIMIT, PREDICTIONS_DIR
 def _check_adv_and_cap(ticker: str) -> tuple[dict, dict]:
     """Single fetch (or cache hit) for both ADV and market cap via fetch_market_data."""
     data = fetch_market_data.fetch(ticker)
+    stale = False
     if data.get("status") != "ok":
-        msg = f"{ticker}: could not fetch market data (network or API error)"
-        return (
-            {"ok": False, "reason": msg, "adv_30d": None},
-            {"ok": False, "reason": msg, "market_cap": None},
-        )
+        # Search for most recent cached market data within the past 5 days
+        data = None
+        for days_back in range(1, 6):
+            past_date = (date.today() - timedelta(days=days_back)).isoformat()
+            past_key = cache.cache_key("market", ticker, for_date=past_date)
+            stale_data = cache.get_ignoring_ttl(past_key)
+            if stale_data:
+                data = stale_data
+                stale = True
+                break
+        if not data:
+            msg = f"{ticker}: could not fetch market data (network or API error)"
+            return (
+                {"ok": False, "reason": msg, "adv_30d": None},
+                {"ok": False, "reason": msg, "market_cap": None},
+            )
     adv = data.get("adv_30d", 0) or 0
     cap = data.get("market_cap", 0) or 0
+    stale_note = " (stale — using yesterday's cache)" if stale else ""
     return (
         {
             "ok": adv >= MIN_ADV,
             "adv_30d": adv,
             "adv_30d_readable": data.get("adv_30d_readable"),
             "threshold": MIN_ADV,
-            "reason": None if adv >= MIN_ADV else f"ADV {adv:,} below {MIN_ADV:,} minimum",
+            "stale": stale,
+            "reason": None if adv >= MIN_ADV else f"ADV {adv:,} below {MIN_ADV:,} minimum{stale_note}",
         },
         {
             "ok": cap >= MIN_MARKET_CAP,
             "market_cap": cap,
             "market_cap_readable": data.get("market_cap_readable"),
             "threshold": MIN_MARKET_CAP,
-            "reason": None if cap >= MIN_MARKET_CAP else f"Market cap {data.get('market_cap_readable', '')} below $500M minimum",
+            "stale": stale,
+            "reason": None if cap >= MIN_MARKET_CAP else f"Market cap {data.get('market_cap_readable', '')} below $500M minimum{stale_note}",
         },
     )
 

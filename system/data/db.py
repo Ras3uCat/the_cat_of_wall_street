@@ -157,8 +157,9 @@ def insert_prediction(prediction: dict) -> bool:
         # fundamental_signals_fired / technical_signal_fired require migration 001
         "fundamental_signals_fired": prediction.get("fundamental_signals_fired"),
         "technical_signal_fired": prediction.get("technical_signal_fired"),
-        # approval_status / equity_at_entry / debate_narrative are written separately
-        # via update_prediction() after the debate completes — not in initial insert
+        "approval_status": prediction.get("approval_status"),
+        "equity_at_entry": prediction.get("equity_at_entry"),
+        "debate_narrative": prediction.get("debate_narrative"),
     }
 
     try:
@@ -178,7 +179,7 @@ def update_prediction(prediction_id: str, fields: dict) -> bool:
     if not client:
         return False
     try:
-        client.table("predictions").update(fields).eq("id", prediction_id).execute()
+        _retry(lambda: client.table("predictions").update(fields).eq("id", prediction_id).execute())
         return True
     except Exception as e:
         print(f"[db] update_prediction failed: {e}")
@@ -197,7 +198,7 @@ def resolve_prediction(prediction_id: str, resolution: dict) -> bool:
 
     update = {**resolution, "resolved": True}
     try:
-        client.table("predictions").update(update).eq("id", prediction_id).execute()
+        _retry(lambda: client.table("predictions").update(update).eq("id", prediction_id).execute())
         return True
     except Exception as e:
         print(f"[db] resolve_prediction failed: {e}")
@@ -254,4 +255,129 @@ def get_confidence_calibration() -> list[dict]:
         return result.data
     except Exception as e:
         print(f"[db] get_confidence_calibration failed: {e}")
+        return []
+
+
+def upsert_short_interest(ticker: str, as_of: str, data: dict) -> bool:
+    """Write short interest snapshot alongside each successful yfinance fetch."""
+    client = get_client()
+    if not client:
+        return False
+    row = {
+        "ticker": ticker.upper(),
+        "date": as_of,
+        "short_interest_pct_float": data.get("short_interest_pct_float"),
+        "shares_short": data.get("shares_short"),
+        "shares_short_prior_month": data.get("shares_short_prior_month"),
+        "short_interest_change_pct": data.get("short_interest_change_pct"),
+        "short_ratio_days_to_cover": data.get("short_ratio_days_to_cover"),
+        "short_signal": data.get("short_signal"),
+    }
+    try:
+        client.table("short_interest_history").upsert(row, on_conflict="ticker,date").execute()
+        return True
+    except Exception as e:
+        print(f"[db] upsert_short_interest failed: {e}")
+        return False
+
+
+def upsert_options_flow(ticker: str, as_of: str, data: dict) -> bool:
+    """Write daily options flow aggregates for correlation analysis in weekly review."""
+    client = get_client()
+    if not client:
+        return False
+    row = {
+        "ticker": ticker.upper(),
+        "date": as_of,
+        "put_call_ratio": data.get("put_call_ratio"),
+        "total_call_volume": data.get("total_call_volume"),
+        "total_put_volume": data.get("total_put_volume"),
+        "unusual_call_count": len(data.get("unusual_volume_calls", [])),
+        "unusual_put_count": len(data.get("unusual_volume_puts", [])),
+        "options_signal_strength": data.get("options_signal_strength"),
+    }
+    try:
+        client.table("options_flow_history").upsert(row, on_conflict="ticker,date").execute()
+        return True
+    except Exception as e:
+        print(f"[db] upsert_options_flow failed: {e}")
+        return False
+
+
+def upsert_macro_snapshot(data: dict) -> bool:
+    """Write daily macro snapshot for regime analysis in monthly review."""
+    client = get_client()
+    if not client:
+        return False
+    row = {
+        "date": data.get("as_of"),
+        "vix": data.get("vix"),
+        "vix_regime": data.get("vix_regime"),
+        "macro_go": data.get("macro_go"),
+        "fed_days_out": data.get("fed_days_out"),
+        "cpi_days_out": data.get("cpi_days_out"),
+        "nfp_days_out": data.get("nfp_days_out"),
+        "fed_next_meeting": data.get("fed_next_meeting"),
+        "cpi_next_release": data.get("cpi_next_release"),
+        "nfp_next_release": data.get("nfp_next_release"),
+    }
+    try:
+        client.table("macro_history").upsert(row, on_conflict="date").execute()
+        return True
+    except Exception as e:
+        print(f"[db] upsert_macro_snapshot failed: {e}")
+        return False
+
+
+def upsert_price_history(ticker: str, rows: list[dict], market_cap: int) -> bool:
+    """
+    Write daily OHLCV rows for a ticker into price_history.
+    Called after every successful yfinance fetch to build a Supabase-backed
+    fallback. Non-blocking — caller should wrap in try/except.
+    """
+    client = get_client()
+    if not client or not rows:
+        return False
+    records = [
+        {
+            "ticker": ticker.upper(),
+            "date": r["date"],
+            "open": r.get("open"),
+            "high": r.get("high"),
+            "low": r.get("low"),
+            "close": r.get("close"),
+            "volume": r.get("volume"),
+            "market_cap": market_cap,
+            "source": "yfinance",
+        }
+        for r in rows
+    ]
+    try:
+        client.table("price_history").upsert(records, on_conflict="ticker,date").execute()
+        return True
+    except Exception as e:
+        print(f"[db] upsert_price_history failed: {e}")
+        return False
+
+
+def get_price_history(ticker: str, days: int = 35) -> list[dict]:
+    """
+    Fetch the most recent `days` rows of OHLCV data for a ticker from Supabase.
+    Returns [] if Supabase is not configured or the table is empty for this ticker.
+    """
+    client = get_client()
+    if not client:
+        return []
+    try:
+        result = (
+            client.table("price_history")
+            .select("date,open,high,low,close,volume,market_cap")
+            .eq("ticker", ticker.upper())
+            .order("date", desc=False)
+            .limit(days)
+            .execute()
+        )
+        return result.data or []
+    except Exception as e:
+        print(f"[db] get_price_history failed: {e}")
         return []

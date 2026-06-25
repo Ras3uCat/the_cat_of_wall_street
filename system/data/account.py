@@ -23,6 +23,7 @@ from config import (
 )
 
 ACCOUNT_STATE_PATH = PROJECT_ROOT / "logs" / "account_state.json"
+TRADING_HALT_PATH = PROJECT_ROOT / "logs" / "trading_halt.json"
 
 
 class AccountStateError(Exception):
@@ -149,6 +150,31 @@ def _get_sector(ticker: str) -> str:
 read_state = load  # alias used in system prompt prediction logging template
 
 
+def is_trading_halted() -> tuple[bool, dict]:
+    """Return (halted, info_dict). False if logs/trading_halt.json absent."""
+    if not TRADING_HALT_PATH.exists():
+        return False, {}
+    info = json.loads(TRADING_HALT_PATH.read_text())
+    return bool(info.get("halted", False)), info
+
+
+def halt_trading(reason: str, equity_at_halt: float = 0.0) -> None:
+    """Write the halt flag. Called when the 15% drawdown circuit breaker fires."""
+    TRADING_HALT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    TRADING_HALT_PATH.write_text(json.dumps({
+        "halted": True,
+        "reason": reason,
+        "halted_at": datetime.now().isoformat(timespec="seconds"),
+        "equity_at_halt": round(equity_at_halt, 2),
+    }, indent=2))
+
+
+def resume_trading() -> None:
+    """Clear the halt flag after Ryan's explicit manual review."""
+    TRADING_HALT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    TRADING_HALT_PATH.write_text(json.dumps({"halted": False}, indent=2))
+
+
 def write_state(state: dict) -> None:
     """
     Write account state to disk. Called by Claude after fetching from Robinhood MCP.
@@ -161,6 +187,10 @@ def write_state(state: dict) -> None:
 
 if __name__ == "__main__":
     import sys
+    halted, halt_info = is_trading_halted()
+    if halted:
+        print(f"TRADING HALTED — reason: {halt_info.get('reason')}  |  since: {halt_info.get('halted_at')}  |  equity at halt: ${halt_info.get('equity_at_halt', 0):.2f}")
+        print("Resume only after Ryan types: 'I have reviewed the drawdown. Resume trading.'")
     try:
         state = load()
         heat = get_portfolio_heat()

@@ -22,19 +22,31 @@ FOMC dates: hardcoded (Fed announces them a year in advance; update annually).
 import csv
 import io
 import json
-import requests
+import urllib.request
+import urllib.parse
 from datetime import date, timedelta
 import cache
 from config import VIX_LOW_MAX, VIX_NORMAL_MAX, VIX_ELEVATED_MAX, FRED_API_KEY
 
+
+def _get(url: str, params: dict | None = None, timeout: int = 10) -> str:
+    """GET via urllib — avoids httpx/requests DNS issues in Python 3.14 environments."""
+    if params:
+        url = url + "?" + urllib.parse.urlencode(params)
+    with urllib.request.urlopen(url, timeout=timeout) as r:
+        return r.read().decode("utf-8")
+
 CBOE_VIX_URL = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
 FRED_RELEASE_DATES_URL = "https://api.stlouisfed.org/fred/release/dates"
 
-# 2026 FOMC meeting dates (announcement dates — the Wednesday of each meeting)
-FOMC_DATES_2026 = [
+# 2026–2027 FOMC meeting dates (announcement dates — the Wednesday of each meeting)
+FOMC_DATES = [
     "2026-01-29", "2026-03-19", "2026-05-07",
     "2026-06-18", "2026-07-30", "2026-09-17",
     "2026-11-05", "2026-12-17",
+    "2027-01-28", "2027-03-18", "2027-05-06",
+    "2027-06-17", "2027-07-29", "2027-09-16",
+    "2027-11-04", "2027-12-16",
 ]
 
 # Fallback hardcoded dates — used when FRED_API_KEY is absent or request fails
@@ -63,19 +75,14 @@ def _fetch_fred_release_dates(release_id: int, fallback: list[str]) -> list[str]
         return cached
     try:
         today = date.today()
-        r = requests.get(
-            FRED_RELEASE_DATES_URL,
-            params={
-                "release_id": release_id,
-                "realtime_start": today.isoformat(),
-                "realtime_end": date(today.year + 1, 12, 31).isoformat(),
-                "api_key": FRED_API_KEY,
-                "file_type": "json",
-            },
-            timeout=10,
-        )
-        r.raise_for_status()
-        dates = [d["date"] for d in r.json().get("release_dates", [])]
+        body = _get(FRED_RELEASE_DATES_URL, params={
+            "release_id": release_id,
+            "realtime_start": today.isoformat(),
+            "realtime_end": date(today.year + 1, 12, 31).isoformat(),
+            "api_key": FRED_API_KEY,
+            "file_type": "json",
+        })
+        dates = [d["date"] for d in json.loads(body).get("release_dates", [])]
         if not dates:
             return fallback
         cache.set(cached_key, dates)
@@ -87,14 +94,11 @@ def _fetch_fred_release_dates(release_id: int, fallback: list[str]) -> list[str]
 def _fetch_vix() -> float | None:
     """Fetch latest VIX close from CBOE. Free, no auth, no yfinance."""
     try:
-        r = requests.get(CBOE_VIX_URL, timeout=10)
-        r.raise_for_status()
-        reader = csv.DictReader(io.StringIO(r.text))
+        reader = csv.DictReader(io.StringIO(_get(CBOE_VIX_URL)))
         rows = list(reader)
         if not rows:
             return None
-        last = rows[-1]
-        return round(float(last["CLOSE"]), 2)
+        return round(float(rows[-1]["CLOSE"]), 2)
     except Exception:
         return None
 
@@ -150,7 +154,7 @@ def fetch() -> dict:
         return {"status": "error", "error": "Could not fetch VIX from CBOE"}
 
     regime = _vix_regime(vix)
-    fed_next, fed_days = _days_until(FOMC_DATES_2026)
+    fed_next, fed_days = _days_until(FOMC_DATES)
     cpi_dates = _fetch_fred_release_dates(_FRED_RELEASE_IDS["cpi"], _CPI_DATES_FALLBACK)
     nfp_dates = _fetch_fred_release_dates(_FRED_RELEASE_IDS["nfp"], _NFP_DATES_FALLBACK)
     cpi_next, cpi_days = _days_until(cpi_dates)
@@ -184,6 +188,11 @@ def fetch() -> dict:
     }
 
     cache.set(key, result)
+    try:
+        import db
+        db.upsert_macro_snapshot(result)
+    except Exception:
+        pass
     return result
 
 

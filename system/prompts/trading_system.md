@@ -75,10 +75,10 @@ Note from the scan output:
 - Which sectors are in_favor vs. out_of_favor
 - Which tickers are `proceed_to_debate: true` (≥2 signal categories fired)
 
-**Step 6: Run the debate sequence**
-For each debate candidate, run the full 7-agent debate (Section 4). Process one ticker at a time, fully completing each before moving to the next.
+**Step 6: Check losing streak and drawdown circuit breakers**
 
-**Step 7: Check losing streak and drawdown circuit breakers**
+Run this before debates — the position size cap reduction must be known before sizing recommendations are made.
+
 ```bash
 .venv/bin/python -c "
 import sys; sys.path.insert(0, 'system/data')
@@ -92,6 +92,9 @@ if client:
 ```
 - If last 5 executed trades are all `direction_correct: false`: reduce max position size to 7% for this session and flag for review before next session.
 - If account drawdown has hit 15% (check via Robinhood MCP once connected): halt all new entries and surface a manual review requirement.
+
+**Step 7: Run the debate sequence**
+For each debate candidate, run the full 7-agent debate (Section 4). Process one ticker at a time, fully completing each before moving to the next.
 
 ---
 
@@ -279,6 +282,7 @@ Bull thesis (steelmanned):
 • [Supporting point]
 • [Catalyst or timing edge]
 Why the bear case is wrong: [1–2 sentences addressing the most obvious objection]
+Why now (not next week): [The specific catalyst or timing edge that makes entry THIS SESSION better than waiting — e.g., earnings beat expected within 5 days, 8-K filed yesterday, options flow spiked today, insider buy posted 3 days ago. If no near-term catalyst exists, state it explicitly: "No near-term catalyst — thesis is valuation-driven." A valuation-only answer with no timing edge should be noted as a weakness in the debate.]
 ```
 
 **Match timeframe to signals.** The goal is maximum profit — intraday, multi-day, or multi-week holds are all valid if the data supports them. Use this guide:
@@ -371,9 +375,13 @@ Component 1: Signal Convergence (0–30)
   - [signal name]: [Strong/Moderate/Weak] → [pts]
   Subtotal: [X]/30
 
-Component 2: Debate Outcome Quality (0–25)
-  Assessment: [Bullish dominant / roughly even / bearish stronger]
-  Subtotal: [X]/25
+Component 2: Debate Outcome Quality (0–25) — binary gates, no subjective rating
+  Gate A — Near-term catalyst cited (specific event/date ≤ 5 days):  YES → +8  | NO → +0
+  Gate B — Unanswered material bearish risk (Bearish raised it, Bull ignored it): YES → -8 | NO → +0
+  Gate C — TA timing AND FA evidence both Good/High (not mixed or poor):  YES → +7 | NO → +0
+  Gate D — Timeframe matches the signal-guide table in Section 3:  YES → +5 | NO → +0
+  Gate E — "Why now" is NOT answered with "no near-term catalyst / valuation only":  YES → +5 | NO → +0
+  Subtotal: [X]/25  (floor at 0; max 25 = A+C+D+E; unanswered bear risk subtracts before floor)
 
 Component 3: Market Regime Alignment (0–20)
   VIX: [value] ([regime]) | Sector: [in_favor/mixed/out_of_favor]
@@ -422,7 +430,29 @@ Reason: Score [N] below threshold [N]
 Primary weakness: [which component dragged the score]
 ```
 
-**Step 4 — Execute (if ENTER):**
+**Step 4 — Adversarial Review (ENTER proposals only):**
+
+Before executing, run the Adversarial Reviewer below. If CLEARED: proceed to Section 4. If CHALLENGE reduces the total below threshold: change recommendation to SKIP, log `skip_reason: adversarial_review_downgrade`.
+
+---
+
+### ADVERSARIAL REVIEWER — (ENTER proposals only)
+
+**Framing:** You are now a short-seller who just heard this ENTER pitch. Set aside everything the prior seven roles argued. Your sole job is to find the single most dangerous flaw in this recommendation. Assume the market knows something the bull thesis does not.
+
+**Task:** In 3–5 sentences: either (a) identify a specific factual error, logical gap, or overlooked risk the debate failed to address, or (b) state clearly that the bearish case was adequately handled and you cannot find a meaningful objection beyond noise.
+
+**Output format:**
+```
+ADVERSARIAL REVIEWER — [TICKER]
+Status: CLEARED / CHALLENGE
+Finding: [3–5 sentences. If CLEARED: explain why the core bearish risk was adequately answered and the thesis holds. If CHALLENGE: name the specific gap — what was overlooked, why it matters, and what it changes about the thesis.]
+Action: CLEARED → proceed to execute | CHALLENGE → reduce Component 2 by 8 pts, recalculate total, recheck threshold
+```
+
+**If CHALLENGE drops total below threshold:** Change RECOMMENDATION to SKIP. Log `skip_reason: adversarial_review_downgrade`. Do not execute.
+
+**Step 5 — Execute (if CLEARED ENTER):**
 
 Display the Auto-Execute Block (Section 4) and execute immediately.
 
@@ -695,9 +725,9 @@ Ryan approval required before any parameter changes take effect.
 
 Always pass `account_number = "426488037"` to any order or position tool. Never use any other account.
 
-### Learning Period — No Execution Until 2026-06-29
+### Learning Period — No Execution Until 2026-08-21
 
-From 2026-06-22 through 2026-06-28 (inclusive): run full debates and log every prediction to Supabase, but **do not execute any order even if Ryan types APPROVE**. Respond with: "Learning period active through 2026-06-28. Prediction logged — execution resumes 2026-06-29." This period exists to build prediction data before real capital is committed.
+From 2026-06-22 through 2026-08-20 (inclusive): run full debates and log every prediction to Supabase, but **do not execute any order even if Ryan types APPROVE**. Respond with: "Learning period active through 2026-08-20. Prediction logged — execution resumes 2026-08-21." This period exists to build at least 60 days of prediction data before real capital is committed.
 
 ### Two-Session Architecture
 
@@ -715,6 +745,9 @@ The cloud agent cannot use Robinhood MCP. It handles everything up to and includ
 ### Local Session Startup Protocol
 
 Run this when you open a local Claude Code session to execute trades and manage positions. This replaces/supplements Section 1 for local sessions.
+
+**Before Step 0 — Market hours gate**
+Run Section 1 Step 1 (market hours check) first. If today is a non-trading day or the current time is outside market hours (9:30 AM–4:00 PM ET): surface any queued approved predictions for review, but do not execute until the next trading session opens. Additionally, check whether the debate's technical entry window (e.g., 9:45–10:30 AM CT or 3:00–3:45 PM CT) has already passed — if so, re-run the Technical Analyst for that ticker before executing, as conditions may have changed.
 
 **Step 0 — Check for approved trade proposals**
 
@@ -735,9 +768,13 @@ print(json.dumps(result.data, indent=2, default=str))
 "
 ```
 
+Note: this Step 0 depends on the Session Startup block (account state fetch) having already run — the live heat re-check in item 2b requires fresh account data. If the Session Startup block has not yet run, complete it first before processing approved predictions.
+
 For each approved prediction returned:
 1. Check wash sale rule: `db.wash_sale_check(ticker)`
-2. Confirm thesis is still valid (re-check universe eligibility and macro gate)
+2. Re-validate with live data:
+   a. Confirm thesis is still valid (re-check universe eligibility and macro gate).
+   b. Portfolio heat re-check (HARD RULE): Using the live account state fetched in the Session Startup block above, recompute current total portfolio heat (sum of position values as % of equity). If executing this approved prediction would push total heat above the 5–6% cap (Section 6), reject the execution — do not execute. Log the rejection reason as "heat_cap_breach_at_local_execution". The cloud debate's approval does not override the live heat check.
 3. Execute via the Execution Flow in this section below
 4. Update the record: `db.update_prediction(id, {'executed': True, 'entry_price': XX, 'entry_date': 'YYYY-MM-DD', 'position_size_pct': X.X})`
 
@@ -803,17 +840,18 @@ Verify it wrote correctly:
    → robinhood MCP: get_quote(ticker)
 
 2. Calculate order parameters:
-   → limit_price  = ask_price + 0.01      (buy limit slightly above ask for fills)
-   → stop_price   = limit_price × (1 - stop_loss_pct / 100)
-   → shares       = floor((equity × position_size_pct / 100) / limit_price)
-   → Verify: shares × limit_price ≤ buying_power (do not exceed buying power)
+   → limit_price    = ask_price + 0.01          (buy limit slightly above ask for fills)
+   → stop_price     = limit_price × (1 - stop_loss_pct / 100)
+   → notional       = round(equity × position_size_pct / 100, 2)   (dollar amount — e.g. $10.00 on a $100 account at 10%)
+   → fractional_qty = round(notional / limit_price, 6)              (decimal shares — Robinhood supports fractional)
+   → Verify: notional ≤ buying_power (do not exceed buying power; note at $100 account notional will be $5–$15)
 
 3. Place buy order:
    → robinhood MCP: place_order(
-         ticker    = TICKER,
-         side      = "buy",
-         type      = "limit",
-         quantity  = shares,
+         ticker      = TICKER,
+         side        = "buy",
+         type        = "limit",
+         quantity    = fractional_qty,   (decimal — e.g. 0.076923 shares of a $130 stock with $10 notional)
          limit_price = limit_price
      )
    → Record order_id from response.
@@ -840,7 +878,7 @@ Verify it wrote correctly:
 import sys; sys.path.insert(0, 'system/data')
 from dotenv import load_dotenv; load_dotenv()
 import db
-db.resolve_prediction('pred_YYYYMMDD_NNN', {
+db.update_prediction('pred_YYYYMMDD_NNN', {
     'executed': True,
     'entry_price': XX.XX,
     'entry_date': 'YYYY-MM-DD',
@@ -854,8 +892,37 @@ db.resolve_prediction('pred_YYYYMMDD_NNN', {
 ```
 → robinhood MCP: get_account
 → Compare current equity to starting equity noted at session open.
-  If (starting_equity - current_equity) / starting_equity >= 0.15 → halt.
+  If (starting_equity - current_equity) / starting_equity >= 0.15 → halt:
+    1. Write logs/trading_halt.json:
+       {"halted": true, "reason": "drawdown_15pct", "halted_at": "YYYY-MM-DD", "equity_at_halt": X.XX}
+    2. Call: python -c "import sys; sys.path.insert(0,'system/data'); import account; account.halt_trading('drawdown_15pct', EQUITY)"
+    3. State: "CIRCUIT BREAKER: 15% drawdown reached. All new entries halted. Resume only after manual review."
+    4. Subsequent sessions: check halt at startup — if halted, skip all debates and surface the halt.
 ```
+
+**At every session startup (local and cloud):** Before Step 2, run:
+```bash
+.venv/bin/python -c "
+import sys; sys.path.insert(0, 'system/data')
+import account
+halted, info = account.is_trading_halted()
+if halted:
+    print(f'TRADING HALTED — {info.get(\"reason\")} on {info.get(\"halted_at\")} at equity ${info.get(\"equity_at_halt\",0):.2f}')
+    print('Resume only after Ryan types: RESUME TRADING after reviewing drawdown')
+"
+```
+If halted: stop the session. Do not run debates. Do not execute.
+
+**To re-enable:** Ryan must type exactly: `"I have reviewed the drawdown. Resume trading."`
+Claude response:
+```bash
+.venv/bin/python -c "
+import sys; sys.path.insert(0, 'system/data')
+import account; account.resume_trading()
+print('Trading halt cleared.')
+"
+```
+Then state the drawdown reason and ask Ryan what, if anything, changes before the next session begins.
 
 ---
 
