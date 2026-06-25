@@ -1,30 +1,33 @@
 {
   "default": [
-    "NVDA", "AAPL", "MSFT", "PLTR", "AMZN", "META", "GOOGL", "AMD", "TSLA", "ORCL",
-    "LMT", "RTX", "NOC", "BAH", "LDOS",
-    "CRM", "NOW", "PANW", "SNOW", "CRWD",
-    "JPM", "GS", "MS",
-    "UNH", "CVS"
+    "PLTR", "BAH", "LDOS", "LMT", "NOC", "RTX", "GD", "LHX", "SAIC",
+    "CRWD", "PANW", "NOW",
+    "NVDA", "AMD", "ORCL",
+    "AXON",
+    "JPM",
+    "UNH",
+    "CRM", "SNOW"
   ],
   "notes": {
-    "NVDA": "AI/compute — high gov contract + options flow signal history",
-    "PLTR": "Gov contract-heavy; strong EDGAR signal source",
-    "AMD": "AI/compute; tracks NVDA signals with lag",
-    "ORCL": "Cloud + gov contracts; often quiet then catalyzed",
-    "LMT": "Defense prime — frequent DoD contracts >$10M, C-suite buys",
-    "RTX": "Defense/aerospace — high contract frequency, active insider history",
-    "NOC": "Defense prime — large DoD awards, less analyst coverage = more edge",
+    "PLTR": "Gov contract-heavy; strong EDGAR signal source; all three signals converge well",
     "BAH": "Gov IT consulting — contracts are core business, signal is very clean",
     "LDOS": "Gov tech/defense — frequent small-to-mid contracts, often overlooked",
-    "CRM": "Enterprise SaaS — active C-suite insider history",
-    "NOW": "Enterprise SaaS — gov contracts growing; strong options flow",
-    "PANW": "Cybersecurity — gov + DoD contracts; high options activity",
-    "SNOW": "Data cloud — active insider trades; options flow signal fires often",
+    "LMT": "Defense prime — frequent DoD contracts >$10M, C-suite buys",
+    "NOC": "Defense prime — large DoD awards, less analyst coverage = more edge",
+    "RTX": "Defense/aerospace — high contract frequency, active insider history",
+    "GD": "Defense prime + GDIT gov IT arm — strong Form 4 history, fits LMT/NOC cluster",
+    "LHX": "Defense electronics/comms — frequent DoD contracts, less retail coverage than primes",
+    "SAIC": "Pure-play gov IT (like BAH) — very clean contract signal, minimal analyst coverage",
     "CRWD": "Cybersecurity — gov contracts post-incidents; strong options activity",
+    "PANW": "Cybersecurity — gov + DoD contracts; high options activity",
+    "NOW": "Enterprise SaaS — gov contracts growing; strong options flow",
+    "NVDA": "AI/compute — high gov contract + options flow signal history; heavily covered so edge is thin",
+    "AMD": "AI/compute; tracks NVDA signals with lag; defense AI overlap",
+    "ORCL": "Cloud + gov contracts (DoD cloud, classified); often quiet then catalyzed hard",
+    "AXON": "Federal/law enforcement tech — growing DHS/DoD contracts, strong options flow, less correlated to defense primes",
     "JPM": "Financials — C-suite buys are rare but very high conviction when they happen",
-    "GS": "Financials — insider trades meaningful given compliance constraints",
-    "MS": "Financials — similar to GS; buybacks + insider buys converge well",
-    "UNH": "Healthcare — large gov contracts (Medicare/Medicaid); consistent insider buying",
-    "CVS": "Healthcare — gov contracts + insider buys; lower vol = cleaner signals"
+    "UNH": "Healthcare — large Medicare/Medicaid gov contracts; consistent insider buying; elevated regulatory risk period",
+    "CRM": "Enterprise SaaS — active C-suite insider history; weaker gov contract angle than NOW",
+    "SNOW": "Data cloud — verify insider direction before trading (insiders may be selling not buying)"
   }
 }
