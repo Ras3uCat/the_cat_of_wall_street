@@ -122,9 +122,9 @@ def _fetch_nasdaq_short_interest(ticker: str) -> dict:
         latest = rows[0]
         prior  = rows[1] if len(rows) > 1 else {}
 
-        shares_short       = _int(latest.get("shortInterest", "0"))
-        shares_short_prior = _int(prior.get("shortInterest", "0"))
-        days_to_cover      = _float(latest.get("daysToCoversShortInterest", "0"))
+        shares_short       = _int(latest.get("interest", "0"))
+        shares_short_prior = _int(prior.get("interest", "0"))
+        days_to_cover      = _float(latest.get("daysToCover", "0"))
         change_pct = (
             round((shares_short - shares_short_prior) / shares_short_prior * 100, 1)
             if shares_short_prior > 0 else None
@@ -138,6 +138,29 @@ def _fetch_nasdaq_short_interest(ticker: str) -> dict:
         }
     except Exception:
         return {}
+
+
+def _enrich_nasdaq_short_interest(ticker: str, result: dict) -> None:
+    """Apply NASDAQ authoritative short interest in-place. No-op on error or NYSE-listed stocks."""
+    nasdaq_si = _fetch_nasdaq_short_interest(ticker)
+    if not nasdaq_si:
+        return
+    result.update({
+        "shares_short": nasdaq_si["shares_short"],
+        "shares_short_prior_month": nasdaq_si["shares_short_prior_month"],
+        "short_interest_change_pct": nasdaq_si["short_interest_change_pct"],
+        "short_ratio_days_to_cover": nasdaq_si["short_ratio_days_to_cover"],
+        "short_interest_source": "nasdaq",
+        "short_interest_settlement_date": nasdaq_si.get("settlement_date", ""),
+    })
+    sc = nasdaq_si.get("short_interest_change_pct")
+    sp = result.get("short_interest_pct_float")
+    result["short_signal"] = (
+        "squeeze_setup" if (sp and sp > 20 and sc is not None and sc < -10)
+        else "covering" if (sc is not None and sc < -10)
+        else "building" if (sc is not None and sc > 10)
+        else "neutral"
+    )
 
 
 def fetch(ticker: str, period_days: int = 30) -> dict:
@@ -208,25 +231,7 @@ def fetch(ticker: str, period_days: int = 30) -> dict:
                 "status": "ok",
             }
 
-            # Enrich with NASDAQ's authoritative biweekly short interest data
-            nasdaq_si = _fetch_nasdaq_short_interest(ticker)
-            if nasdaq_si:
-                result.update({
-                    "shares_short": nasdaq_si["shares_short"],
-                    "shares_short_prior_month": nasdaq_si["shares_short_prior_month"],
-                    "short_interest_change_pct": nasdaq_si["short_interest_change_pct"],
-                    "short_ratio_days_to_cover": nasdaq_si["short_ratio_days_to_cover"],
-                    "short_interest_source": "nasdaq",
-                    "short_interest_settlement_date": nasdaq_si.get("settlement_date", ""),
-                })
-                sc = nasdaq_si.get("short_interest_change_pct")
-                sp = result.get("short_interest_pct_float")
-                result["short_signal"] = (
-                    "squeeze_setup" if (sp and sp > 20 and sc is not None and sc < -10)
-                    else "covering" if (sc is not None and sc < -10)
-                    else "building" if (sc is not None and sc > 10)
-                    else "neutral"
-                )
+            _enrich_nasdaq_short_interest(ticker, result)
             cache.set(key, result)
             try:
                 import db
@@ -277,6 +282,7 @@ def fetch(ticker: str, period_days: int = 30) -> dict:
                 "source": "supabase",
                 "status": "ok",
             }
+            _enrich_nasdaq_short_interest(ticker, result)
             cache.set(key, result)
             return result
     except Exception:
@@ -285,6 +291,7 @@ def fetch(ticker: str, period_days: int = 30) -> dict:
     # Supabase exhausted — try Finnhub
     result = _fetch_from_finnhub(ticker)
     if result["status"] == "ok":
+        _enrich_nasdaq_short_interest(ticker, result)
         cache.set(key, result)
     return result
 
