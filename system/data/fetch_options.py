@@ -64,70 +64,16 @@ def _unusual_contracts(df, side: str, expiry: str) -> list[dict]:
 
 def _fetch_barchart_unusual(ticker: str) -> list[dict]:
     """
-    Fetch unusual options activity from Barchart.com.
+    Barchart unusual options — DISABLED.
 
-    Key improvement over Yahoo Finance vol/OI proxy: returns actual premium size,
-    which distinguishes institutional sweeps from routine elevated volume.
-    A $5M premium in calls is fundamentally different from $50K with the same vol/OI ratio.
-    Falls back to [] on any error — caller uses Yahoo Finance proxy instead.
+    Barchart's core-api unusual activity endpoint requires an authenticated paid
+    subscription (returns 401 for all unauthenticated requests). The per-ticker
+    page URL also returns 404 for the session path we need.
+
+    Upgrade path: subscribe to Barchart Premier or Unusual Whales for real sweep
+    detection with premium size. Until then, Yahoo Finance vol/OI proxy is used.
     """
-    try:
-        session = requests.Session()
-        session.headers.update({
-            "User-Agent": _BARCHART_UA,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        })
-        # First request establishes session cookies including XSRF-TOKEN
-        session.get(
-            f"https://www.barchart.com/stocks/quotes/{ticker.upper()}/options-unusual-activity",
-            timeout=_BARCHART_TIMEOUT,
-        )
-        xsrf = session.cookies.get("XSRF-TOKEN", "")
-        if not xsrf:
-            return []
-
-        resp = session.get(
-            "https://www.barchart.com/proxies/core-api/v1/options/unusual-activity",
-            params={
-                "symbols": ticker.upper(),
-                "fields": "symbol,expirationDate,strikePrice,side,volume,openInterest,volOIRatio,premium,tradeTime,volatility",
-                "raw": "1",
-                "page": "1",
-                "limit": "50",
-                "orderBy": "volume",
-                "orderDir": "desc",
-            },
-            headers={
-                "X-XSRF-TOKEN": xsrf,
-                "Referer": f"https://www.barchart.com/stocks/quotes/{ticker.upper()}/options-unusual-activity",
-                "Accept": "application/json",
-            },
-            timeout=_BARCHART_TIMEOUT,
-        )
-        rows = resp.json().get("data", []) or []
-        if not rows:
-            return []
-
-        def _raw(v):
-            return (v.get("raw") if isinstance(v, dict) else v) or 0
-
-        return [
-            {
-                "source": "barchart",
-                "expiry": str(_raw(r.get("expirationDate", ""))),
-                "strike": float(_raw(r.get("strikePrice", 0))),
-                "side": str(_raw(r.get("side", ""))).lower(),
-                "volume": int(_raw(r.get("volume", 0))),
-                "open_interest": int(_raw(r.get("openInterest", 0))),
-                "vol_oi_ratio": round(float(_raw(r.get("volOIRatio", 0))), 1),
-                "premium": round(float(_raw(r.get("premium", 0))), 0),
-                "implied_volatility": round(float(_raw(r.get("volatility", 0))), 1),
-                "trade_time": str(_raw(r.get("tradeTime", ""))),
-            }
-            for r in rows
-        ]
-    except Exception:
-        return []
+    return []
 
 
 def _classify_barchart_strength(calls: list[dict], puts: list[dict], pcr: float) -> str:
