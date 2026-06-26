@@ -25,6 +25,47 @@ load_dotenv()
 import discover_contracts
 import discover_insiders
 
+AUTO_ADD_MIN_SCORE = 2  # must have 2+ signal sources (or 1 with C-suite + large contract bonus)
+
+
+def auto_add_qualified(candidates: list[dict], watchlist_path: str = "watchlist.json") -> list[str]:
+    """
+    For each candidate with discovery_score >= AUTO_ADD_MIN_SCORE, run universe_check.
+    Tickers that pass both gates are appended to watchlist.json.
+    Returns the list of tickers actually added.
+    """
+    import universe_check
+
+    wl_path = Path(watchlist_path)
+    wl_data = json.loads(wl_path.read_text())
+    current = set(wl_data["default"])
+
+    qualified = [c for c in candidates if c["discovery_score"] >= AUTO_ADD_MIN_SCORE]
+    if not qualified:
+        print("[auto-add] No candidates meet the score threshold.")
+        return []
+
+    added = []
+    for c in qualified:
+        ticker = c["ticker"]
+        if ticker in current:
+            continue
+        print(f"[auto-add] Checking {ticker} (score={c['discovery_score']})...")
+        gate = universe_check.check(ticker)
+        if gate["eligible"]:
+            current.add(ticker)
+            added.append(ticker)
+            print(f"[auto-add] ✓ {ticker} passes universe check — added to watchlist")
+        else:
+            print(f"[auto-add] ✗ {ticker} blocked: {'; '.join(gate['fail_reasons'])}")
+
+    if added:
+        wl_data["default"] = sorted(current)
+        wl_path.write_text(json.dumps(wl_data, indent=2))
+        print(f"[auto-add] watchlist.json updated — added: {added}")
+
+    return added
+
 
 def run(
     days_contracts: int = 30,
@@ -122,6 +163,8 @@ if __name__ == "__main__":
     parser.add_argument("--watchlist", default="watchlist.json", help="Path to watchlist.json")
     parser.add_argument("--contracts-only", action="store_true")
     parser.add_argument("--insiders-only", action="store_true")
+    parser.add_argument("--auto-add", action="store_true",
+                        help="Auto-add qualified candidates (score>=2 + universe check) to watchlist.json")
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
     args = parser.parse_args()
 
@@ -132,6 +175,9 @@ if __name__ == "__main__":
         contracts_only=args.contracts_only,
         insiders_only=args.insiders_only,
     )
+
+    if args.auto_add:
+        auto_add_qualified(data["candidates"], watchlist_path=args.watchlist)
 
     if args.json:
         print(json.dumps(data, indent=2, default=str))
