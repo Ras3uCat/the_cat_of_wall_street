@@ -53,19 +53,22 @@ def _yfinance_earnings(ticker: str) -> date | None:
         return None
 
 
-def _recent_earnings_8k(ticker: str) -> bool:
+def _last_earnings_8k(ticker: str) -> date | None:
     """
-    Returns True if a Form 8-K Item 2.02 (Results of Operations) was filed
-    within the last 14 days. Uses the submissions API via fetch_filings —
-    accurate company match, no EDGAR EFTS text-search false positives.
+    Returns the date of the most recent Form 8-K Item 2.02 (Results of Operations)
+    within the last 90 days, or None if not found. Looks back 90 days to cover
+    the full quarterly cycle even when yfinance fails to return a forward date.
     """
     try:
-        result = fetch_filings.fetch(ticker, days=14)
+        result = fetch_filings.fetch(ticker, days=90)
         if result.get("status") != "ok":
-            return False
-        return any(f.get("item") == "2.02" for f in result.get("filings", []))
+            return None
+        filings = [f for f in result.get("filings", []) if f.get("item") == "2.02"]
+        if not filings:
+            return None
+        return date.fromisoformat(max(f["date"] for f in filings))
     except Exception:
-        return False
+        return None
 
 
 def fetch(ticker: str) -> dict:
@@ -76,24 +79,27 @@ def fetch(ticker: str) -> dict:
 
     ticker = ticker.upper()
     next_earnings = _yfinance_earnings(ticker)
-    recently_reported = _recent_earnings_8k(ticker)
+    last_report_date = _last_earnings_8k(ticker)
 
     today = date.today()
 
     if next_earnings is None:
-        if recently_reported:
-            # Just reported → next earnings ~90 days out → safe to trade
-            inferred_date = today + timedelta(days=90)
+        if last_report_date is not None:
+            # Infer next earnings as ~90 days after the last reported date
+            inferred_date = last_report_date + timedelta(days=90)
+            days_out = (inferred_date - today).days
             result = {
                 "ticker": ticker,
                 "next_earnings": inferred_date.isoformat(),
-                "days_out": 90,
+                "days_out": days_out,
                 "confidence": "estimated",
                 "source": "edgar_8k_inference",
-                "earnings_clear": True,
-                "note": "yfinance returned no date; EDGAR confirms recent 8-K Item 2.02 — next earnings inferred ~90 days out",
+                "earnings_clear": days_out > EARNINGS_BUFFER_DAYS,
+                "note": f"yfinance returned no date; EDGAR 8-K Item 2.02 on {last_report_date} — next earnings inferred ~{days_out}d out",
                 "status": "ok",
             }
+            if not result["earnings_clear"]:
+                result["note"] += f". Within {EARNINGS_BUFFER_DAYS}-day buffer — blocking."
         else:
             # Truly unknown — conservative block
             result = {
