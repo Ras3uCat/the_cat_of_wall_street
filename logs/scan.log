@@ -1,0 +1,156 @@
+[Fri Jun 26 12:30:00 PM CDT 2026] Starting midday scan...
+2026-06-26 12:30:09 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/macro_history?on_conflict=date "HTTP/2 201 Created"
+2026-06-26 12:30:09 ERROR yfinance: Failed to get ticker 'XLU' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 52 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:09 ERROR yfinance: Failed to get ticker 'XLI' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 55 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:09 ERROR yfinance: Failed to get ticker 'XLK' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 62 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:09 ERROR yfinance: Failed to get ticker 'XLE' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 55 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:09 ERROR yfinance: Failed to get ticker 'SPY' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 52 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:10 ERROR yfinance: Failed to get ticker 'XLV' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 73 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:10 ERROR yfinance: Failed to get ticker 'XLF' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 66 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:10 ERROR yfinance: Failed to get ticker 'XLY' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 64 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:10 ERROR yfinance: $XLK: possibly delisted; no price data found  (period=95d)
+2026-06-26 12:30:10 ERROR yfinance: $XLE: possibly delisted; no price data found  (period=95d)
+2026-06-26 12:30:10 ERROR yfinance: $SPY: possibly delisted; no price data found  (period=95d)
+2026-06-26 12:30:10 ERROR yfinance: $XLV: possibly delisted; no price data found  (period=95d)
+2026-06-26 12:30:10 ERROR yfinance: $XLF: possibly delisted; no price data found  (period=95d)
+2026-06-26 12:30:10 ERROR yfinance: $XLY: possibly delisted; no price data found  (period=95d)
+2026-06-26 12:30:10 ERROR yfinance: Failed to get ticker 'XLP' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 66 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:10 ERROR yfinance: Failed to get ticker 'XLRE' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 69 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:10 ERROR yfinance: Failed to get ticker 'XLC' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 60 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:10 ERROR yfinance: Failed to get ticker 'XLB' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 60 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 12:30:10 ERROR yfinance: $XLP: possibly delisted; no price data found  (period=95d)
+2026-06-26 12:30:10 ERROR yfinance: $XLRE: possibly delisted; no price data found  (period=95d)
+2026-06-26 12:30:10 ERROR yfinance: $XLC: possibly delisted; no price data found  (period=95d)
+2026-06-26 12:30:10 ERROR yfinance: $XLB: possibly delisted; no price data found  (period=95d)
+2026-06-26 12:30:10 ERROR yfinance: 
+12 Failed downloads:
+2026-06-26 12:30:10 ERROR yfinance: ['XLU', 'XLI']: ConnectionError('Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 0 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.')
+2026-06-26 12:30:10 ERROR yfinance: ['XLK', 'XLE', 'SPY', 'XLV', 'XLF', 'XLY', 'XLP', 'XLRE', 'XLC', 'XLB']: possibly delisted; no price data found  (period=95d)
+2026-06-26 12:30:10 INFO __main__: Scanning 20 tickers in parallel (up to 8 workers)...
+Running daily scan for: PLTR, BAH, LDOS, LMT, NOC, RTX, GD, LHX, SAIC, CRWD, PANW, NOW, NVDA, AMD, ORCL, AXON, JPM, UNH, CRM, SNOW
+  Scanning 20 tickers in parallel (up to 8 workers)...
+2026-06-26 12:30:22 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.LDOS&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:22 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.BAH&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:22 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.PLTR&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:23 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.LMT&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:24 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.LHX&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:24 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.GD&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:25 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.RTX&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:26 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.NOC&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 12:30:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 12:30:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 12:30:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [PLTR] done — signals=0
+  [GD] done — signals=0
+  [LMT] done — signals=0
+  [LDOS] done — signals=0
+2026-06-26 12:30:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 12:30:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [BAH] done — signals=0
+  [LHX] done — signals=0
+2026-06-26 12:30:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [RTX] done — signals=0
+2026-06-26 12:30:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NOC] done — signals=0
+2026-06-26 12:30:38 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.ORCL&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:38 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.AMD&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:39 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.PANW&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:40 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.NOW&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:40 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 12:30:40 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [AMD] done — signals=0
+  [ORCL] done — signals=0
+2026-06-26 12:30:41 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [PANW] done — signals=0
+2026-06-26 12:30:41 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.NVDA&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:41 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NOW] done — signals=0
+2026-06-26 12:30:42 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.SAIC&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:42 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.AXON&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:42 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.CRWD&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:42 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NVDA] done — signals=0
+2026-06-26 12:30:43 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 12:30:43 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [CRWD] done — signals=0
+  [SAIC] done — signals=0
+2026-06-26 12:30:44 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [AXON] done — signals=0
+2026-06-26 12:30:51 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.CRM&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:51 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.JPM&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:53 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.UNH&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:54 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [CRM] done — signals=0
+2026-06-26 12:30:54 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.SNOW&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 12:30:55 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [JPM] done — signals=0
+2026-06-26 12:30:57 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [UNH] done — signals=0
+2026-06-26 12:30:59 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [SNOW] done — signals=0
+2026-06-26 12:30:59 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/scans "HTTP/2 201 Created"
+[db] Scan synced to Supabase
+
+============================================================
+DAILY SCAN — 2026-06-26
+============================================================
+VIX: 18.89 (NORMAL)
+Macro go: YES
+
+Tickers scanned: 20
+Eligible:        0
+Debate ready:    0
+
+INELIGIBLE:
+  PLTR: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  GD: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  LMT: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  LDOS: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  BAH: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  LHX: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  RTX: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  NOC: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  AMD: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  ORCL: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  PANW: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  NOW: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  NVDA: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  CRWD: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  SAIC: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  AXON: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  CRM: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  JPM: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  UNH: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+  SNOW: No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+============================================================
+Full packet: logs/predictions/scan_2026-06-26.json
+[Fri Jun 26 12:31:03 PM CDT 2026] Scan complete. Starting debate...
+Scan record updated. Here is the full session summary:
+
+---
+
+**MIDDAY SCAN SESSION — 2026-06-26**
+
+**Macro Gate: GO**
+- VIX: 18.89 (normal regime — standard sizing)
+- No macro cautions
+- NFP in 6 days (July 2) — worth noting but not a hard stop
+- All sector rotation data unavailable (returned null) — regime alignment will score as unknown
+
+**Universe Check Result: 0 / 20 eligible**
+
+Every ticker on the watchlist was blocked by the same conservative rule: *"No earnings date found and no recent 8-K to infer from — blocking to prevent gap risk from untracked earnings event."*
+
+This is a systemic data issue, not individual ticker risk. The earnings calendar fetch is returning no dates for any ticker, which triggers the conservative block on all of them. This affected the prior scan as well — worth investigating the `fetch_earnings_calendar.py` data source (yfinance/EDGAR) to determine why dates aren't resolving.
+
+**Debates run: 0**
+**Predictions logged: 0**
+**Push notifications sent: 0**
+
+**Scan outcome logged to Supabase:** `scan_2026-06-26_midday` — OK
+
+---
+
+**Action item for next local session:** The universal earnings-date block is preventing any ticker from reaching debate. Consider running `python system/data/universe_check.py --ticker NVDA` manually to diagnose whether the earnings calendar fetch is broken or if this is expected (Q2 earnings season pause before July reports begin). If the block is a data feed issue, it should be fixed before tomorrow's scan.
+[Fri Jun 26 12:31:55 PM CDT 2026] Debate session complete.
