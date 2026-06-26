@@ -1,0 +1,63 @@
+name: Cat of Wall Street — Daily Scans
+
+on:
+  schedule:
+    - cron: '0 13 * * 1-5'    # 8:00 AM CT (weekdays)
+    - cron: '30 17 * * 1-5'   # 12:30 PM CT
+    - cron: '30 19 * * 1-5'   # 2:30 PM CT
+  workflow_dispatch:
+    inputs:
+      session_type:
+        description: 'Session type'
+        required: true
+        default: 'pre_market'
+        type: choice
+        options:
+          - pre_market
+          - midday
+          - pm_window
+
+jobs:
+  scan-and-debate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      FINNHUB_API: ${{ secrets.FINNHUB_API }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      NOTIFY_SECRET: ${{ secrets.NOTIFY_SECRET }}
+      EDGAR_USER_AGENT: ${{ secrets.EDGAR_USER_AGENT }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r system/data/requirements.txt anthropic
+
+      - name: Determine session type
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "SESSION_TYPE=${{ inputs.session_type }}" >> $GITHUB_ENV
+          else
+            case "${{ github.event.schedule }}" in
+              "0 13 * * 1-5")  echo "SESSION_TYPE=pre_market" >> $GITHUB_ENV ;;
+              "30 17 * * 1-5") echo "SESSION_TYPE=midday"     >> $GITHUB_ENV ;;
+              "30 19 * * 1-5") echo "SESSION_TYPE=pm_window"  >> $GITHUB_ENV ;;
+            esac
+          fi
+
+      - name: Run data scan
+        run: python system/data/run_daily_scan.py --session-type $SESSION_TYPE
+
+      - name: Run debates
+        run: |
+          SCAN_FILE="logs/predictions/scan_$(date +%Y-%m-%d)_${SESSION_TYPE}.json"
+          python system/data/debate.py --scan-file "$SCAN_FILE"
