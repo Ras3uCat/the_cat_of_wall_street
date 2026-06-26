@@ -131,7 +131,7 @@ def insert_prediction(prediction: dict) -> bool:
     components = prediction.get("confidence_components", {})
     row = {
         "id": prediction["id"],
-        "scan_id": f"scan_{prediction.get('scan_date', date.today().isoformat())}",
+        "scan_id": prediction.get("scan_id") or f"scan_{prediction.get('scan_date', date.today().isoformat())}",
         "ticker": prediction["ticker"].upper(),
         "scan_date": prediction.get("scan_date", date.today().isoformat()),
         "signals_fired": prediction.get("signals_fired", []),
