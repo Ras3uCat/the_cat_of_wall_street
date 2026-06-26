@@ -34,11 +34,28 @@ Your tasks:
 1. Read system/prompts/trading_system.md (CLAUDE.md requires this first)
 2. Read the scan packet at the path above
 3. Run the full 7-agent debate for every ticker where proceed_to_debate=true
-4. Log all predictions to Supabase per Section 5
+4. Log all predictions to Supabase per Section 5 with these REQUIRED fields:
+   - approval_status: set to 'approved' for ENTER decisions, 'rejected' for SKIP decisions
+   - debate_narrative: the full reasoning from the 7-agent debate
 5. Send push notifications for any ENTER decisions
 6. Update outcome_summary in the scan record in Supabase
+7. For any ENTER decision: append the order to logs/execution_queue.json using this format:
+   {
+     \"id\": \"<prediction_id>\",
+     \"ticker\": \"<TICKER>\",
+     \"direction\": \"<long|short>\",
+     \"position_size_pct\": <float>,
+     \"confidence_score\": <int>,
+     \"entry_price\": <float or null>,
+     \"scan_date\": \"$TODAY\",
+     \"session_type\": \"$SESSION_TYPE\",
+     \"queued_at\": \"<ISO timestamp>\",
+     \"executed\": false
+   }
+   Read the existing file first, append to the array, then write back.
+   Create the file with an empty array [] if it doesn't exist yet.
 
-Learning period: if today is before 2026-06-29, set skip_reason='learning_period' on all predictions but still log them and send notifications.
+Learning period: if today is before 2026-08-21, set skip_reason='learning_period' on all predictions but still log them and send notifications.
 No Robinhood MCP — this is data+debate only, no trade execution."
 
 echo "[$(date)] Debate session complete."

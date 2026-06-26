@@ -11,11 +11,16 @@ data service such as Unusual Whales. This is noted in every output.
 """
 import argparse
 import json
+import random
+import time
 import requests
 from datetime import date
 import yfinance as yf
 import cache
 from config import OPTIONS_UNUSUAL_VOLUME_RATIO, OPTIONS_TOP_GAMMA_LEVELS
+
+_MAX_RETRIES = 3
+_BASE_DELAY = 2  # seconds; doubles each retry
 
 _BARCHART_UA = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -103,89 +108,102 @@ def fetch(ticker: str) -> dict:
     if cached:
         return cached
 
-    try:
-        stock = yf.Ticker(ticker)
-        expirations = stock.options
-        if not expirations:
-            return {
+    result = None
+    last_error: Exception | None = None
+    for attempt in range(_MAX_RETRIES):
+        if attempt > 0:
+            time.sleep(_BASE_DELAY * (2 ** (attempt - 1)) + random.uniform(0, 1))
+        try:
+            stock = yf.Ticker(ticker)
+            expirations = stock.options
+            if not expirations:
+                if attempt < _MAX_RETRIES - 1:
+                    last_error = Exception("empty options list — possible rate limit, retrying")
+                    continue
+                return {
+                    "ticker": ticker.upper(),
+                    "status": "unavailable",
+                    "reason": "No options available for this ticker",
+                    "note": PROXY_NOTE,
+                }
+
+            today = date.today()
+
+            # Prefer 7+ DTE expirations — where informed directional bets live.
+            # Fall back to nearest if none qualify (e.g., thin options market).
+            valid_exps = [e for e in expirations if (date.fromisoformat(e) - today).days >= 7][:3]
+            if not valid_exps:
+                valid_exps = [expirations[0]]
+
+            all_unusual_calls: list[dict] = []
+            all_unusual_puts: list[dict] = []
+            total_call_vol = 0
+            total_put_vol = 0
+            all_gamma_levels: list[dict] = []
+
+            for exp in valid_exps:
+                chain = stock.option_chain(exp)
+                calls = chain.calls
+                puts = chain.puts
+
+                all_unusual_calls.extend(_unusual_contracts(calls, "call", exp))
+                all_unusual_puts.extend(_unusual_contracts(puts, "put", exp))
+                total_call_vol += int(calls["volume"].sum()) if not calls.empty else 0
+                total_put_vol += int(puts["volume"].sum()) if not puts.empty else 0
+
+                for df, sign in [(calls, 1), (puts, -1)]:
+                    if "gamma" not in df.columns:
+                        continue
+                    df = df[(df["openInterest"] > 0) & (df["gamma"].notna())].copy()
+                    df["net_gamma"] = df["gamma"] * df["openInterest"] * sign * 100
+                    for _, row in df.iterrows():
+                        all_gamma_levels.append({"strike": row["strike"], "expiry": exp, "net_gamma": round(row["net_gamma"], 0)})
+
+            pcr = round(total_put_vol / total_call_vol, 2) if total_call_vol > 0 else None
+
+            all_gamma_levels.sort(key=lambda x: abs(x["net_gamma"]), reverse=True)
+            top_gamma = all_gamma_levels[:OPTIONS_TOP_GAMMA_LEVELS]
+
+            result = {
                 "ticker": ticker.upper(),
-                "status": "unavailable",
-                "reason": "No options available for this ticker",
+                "expirations_used": valid_exps,
+                "expirations_available": len(expirations),
+                "put_call_ratio": pcr,
+                "total_call_volume": total_call_vol,
+                "total_put_volume": total_put_vol,
+                "unusual_volume_calls": all_unusual_calls,
+                "unusual_volume_puts": all_unusual_puts,
+                "gamma_levels": top_gamma,
+                "options_signal_strength": _classify_strength(len(all_unusual_calls), len(all_unusual_puts), pcr or 1.0),
+                "options_source": "yfinance_proxy",
                 "note": PROXY_NOTE,
+                "calibration_note": CALIBRATION_NOTE,
+                "status": "ok",
             }
 
-        today = date.today()
+            # Try Barchart for premium-weighted unusual activity — replaces vol/OI proxy if available
+            barchart = _fetch_barchart_unusual(ticker)
+            if barchart:
+                bc_calls = [c for c in barchart if c["side"] == "call"]
+                bc_puts  = [p for p in barchart if p["side"] == "put"]
+                result["unusual_volume_calls"]    = bc_calls
+                result["unusual_volume_puts"]     = bc_puts
+                result["options_signal_strength"] = _classify_barchart_strength(bc_calls, bc_puts, pcr or 1.0)
+                result["options_source"]          = "barchart"
+                result["note"] = (
+                    f"Barchart unusual activity — premium-weighted signal "
+                    f"({len(bc_calls)} unusual calls, {len(bc_puts)} unusual puts). "
+                    "Not a vol/OI proxy — treat signal strength labels at face value."
+                )
+                result.pop("calibration_note", None)
+            break  # success
 
-        # Prefer 7+ DTE expirations — where informed directional bets live.
-        # Fall back to nearest if none qualify (e.g., thin options market).
-        valid_exps = [e for e in expirations if (date.fromisoformat(e) - today).days >= 7][:3]
-        if not valid_exps:
-            valid_exps = [expirations[0]]
+        except Exception as e:
+            last_error = e
+            continue
 
-        all_unusual_calls: list[dict] = []
-        all_unusual_puts: list[dict] = []
-        total_call_vol = 0
-        total_put_vol = 0
-        all_gamma_levels: list[dict] = []
-
-        for exp in valid_exps:
-            chain = stock.option_chain(exp)
-            calls = chain.calls
-            puts = chain.puts
-
-            all_unusual_calls.extend(_unusual_contracts(calls, "call", exp))
-            all_unusual_puts.extend(_unusual_contracts(puts, "put", exp))
-            total_call_vol += int(calls["volume"].sum()) if not calls.empty else 0
-            total_put_vol += int(puts["volume"].sum()) if not puts.empty else 0
-
-            for df, sign in [(calls, 1), (puts, -1)]:
-                if "gamma" not in df.columns:
-                    continue
-                df = df[(df["openInterest"] > 0) & (df["gamma"].notna())].copy()
-                df["net_gamma"] = df["gamma"] * df["openInterest"] * sign * 100
-                for _, row in df.iterrows():
-                    all_gamma_levels.append({"strike": row["strike"], "expiry": exp, "net_gamma": round(row["net_gamma"], 0)})
-
-        pcr = round(total_put_vol / total_call_vol, 2) if total_call_vol > 0 else None
-
-        all_gamma_levels.sort(key=lambda x: abs(x["net_gamma"]), reverse=True)
-        top_gamma = all_gamma_levels[:OPTIONS_TOP_GAMMA_LEVELS]
-
-        result = {
-            "ticker": ticker.upper(),
-            "expirations_used": valid_exps,
-            "expirations_available": len(expirations),
-            "put_call_ratio": pcr,
-            "total_call_volume": total_call_vol,
-            "total_put_volume": total_put_vol,
-            "unusual_volume_calls": all_unusual_calls,
-            "unusual_volume_puts": all_unusual_puts,
-            "gamma_levels": top_gamma,
-            "options_signal_strength": _classify_strength(len(all_unusual_calls), len(all_unusual_puts), pcr or 1.0),
-            "options_source": "yfinance_proxy",
-            "note": PROXY_NOTE,
-            "calibration_note": CALIBRATION_NOTE,
-            "status": "ok",
-        }
-
-        # Try Barchart for premium-weighted unusual activity — replaces vol/OI proxy if available
-        barchart = _fetch_barchart_unusual(ticker)
-        if barchart:
-            bc_calls = [c for c in barchart if c["side"] == "call"]
-            bc_puts  = [p for p in barchart if p["side"] == "put"]
-            result["unusual_volume_calls"]    = bc_calls
-            result["unusual_volume_puts"]     = bc_puts
-            result["options_signal_strength"] = _classify_barchart_strength(bc_calls, bc_puts, pcr or 1.0)
-            result["options_source"]          = "barchart"
-            result["note"] = (
-                f"Barchart unusual activity — premium-weighted signal "
-                f"({len(bc_calls)} unusual calls, {len(bc_puts)} unusual puts). "
-                "Not a vol/OI proxy — treat signal strength labels at face value."
-            )
-            result.pop("calibration_note", None)
-
-    except Exception as e:
-        result = {"ticker": ticker.upper(), "status": "error", "error": str(e), "note": PROXY_NOTE}
+    if result is None:
+        result = {"ticker": ticker.upper(), "status": "error", "error": str(last_error), "note": PROXY_NOTE}
 
     if result["status"] == "ok":
         cache.set(key, result)

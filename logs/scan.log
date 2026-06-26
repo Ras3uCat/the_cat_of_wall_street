@@ -154,3 +154,217 @@ This is a systemic data issue, not individual ticker risk. The earnings calendar
 
 **Action item for next local session:** The universal earnings-date block is preventing any ticker from reaching debate. Consider running `python system/data/universe_check.py --ticker NVDA` manually to diagnose whether the earnings calendar fetch is broken or if this is expected (Q2 earnings season pause before July reports begin). If the block is a data feed issue, it should be fixed before tomorrow's scan.
 [Fri Jun 26 12:31:55 PM CDT 2026] Debate session complete.
+[Fri Jun 26 02:30:03 PM CDT 2026] Starting pm_window scan...
+2026-06-26 14:30:10 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/macro_history?on_conflict=date "HTTP/2 200 OK"
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'XLK' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 46 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'XLV' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 44 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'XLE' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 44 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'XLP' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 44 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'XLU' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 51 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'XLY' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 46 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'XLF' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 48 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'SPY' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 47 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: $XLE: possibly delisted; no price data found  (period=95d)
+2026-06-26 14:30:10 ERROR yfinance: $XLP: possibly delisted; no price data found  (period=95d)
+2026-06-26 14:30:10 ERROR yfinance: $XLU: possibly delisted; no price data found  (period=95d)
+2026-06-26 14:30:10 ERROR yfinance: $XLY: possibly delisted; no price data found  (period=95d)
+2026-06-26 14:30:10 ERROR yfinance: $XLF: possibly delisted; no price data found  (period=95d)
+2026-06-26 14:30:10 ERROR yfinance: $SPY: possibly delisted; no price data found  (period=95d)
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'XLRE' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 43 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'XLB' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 45 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'XLI' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 48 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: Failed to get ticker 'XLC' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 47 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:10 ERROR yfinance: $XLRE: possibly delisted; no price data found  (period=95d)
+2026-06-26 14:30:10 ERROR yfinance: $XLB: possibly delisted; no price data found  (period=95d)
+2026-06-26 14:30:10 ERROR yfinance: $XLI: possibly delisted; no price data found  (period=95d)
+2026-06-26 14:30:10 ERROR yfinance: $XLC: possibly delisted; no price data found  (period=95d)
+2026-06-26 14:30:10 ERROR yfinance: 
+12 Failed downloads:
+2026-06-26 14:30:10 ERROR yfinance: ['XLK', 'XLV']: ConnectionError('Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 0 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.')
+2026-06-26 14:30:10 ERROR yfinance: ['XLE', 'XLP', 'XLU', 'XLY', 'XLF', 'SPY', 'XLRE', 'XLB', 'XLI', 'XLC']: possibly delisted; no price data found  (period=95d)
+2026-06-26 14:30:10 INFO __main__: Scanning 20 tickers in parallel (up to 8 workers)...
+Running daily scan for: PLTR, BAH, LDOS, LMT, NOC, RTX, GD, LHX, SAIC, CRWD, PANW, NOW, NVDA, AMD, ORCL, AXON, JPM, UNH, CRM, SNOW
+  Scanning 20 tickers in parallel (up to 8 workers)...
+2026-06-26 14:30:21 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.LDOS&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:30:22 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.BAH&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:30:22 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:30:22 ERROR yfinance: Failed to get ticker 'LDOS' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 48 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:22 ERROR yfinance: $LDOS: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:30:22 ERROR yfinance: $LDOS: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:30:23 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:30:23 ERROR yfinance: Failed to get ticker 'BAH' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 45 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:23 ERROR yfinance: $BAH: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:30:23 ERROR yfinance: $BAH: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:30:23 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.RTX&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:30:23 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.GD&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:30:24 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.LHX&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:30:24 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.NOC&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:30:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:30:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:30:25 ERROR yfinance: Failed to get ticker 'RTX' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 47 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:25 ERROR yfinance: $RTX: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:30:25 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.PLTR&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:30:25 ERROR yfinance: $RTX: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:30:25 ERROR yfinance: Failed to get ticker 'GD' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 48 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:25 ERROR yfinance: $GD: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:30:25 ERROR yfinance: $GD: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:30:25 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.LMT&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:30:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:30:26 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:30:26 ERROR yfinance: Failed to get ticker 'NOC' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 49 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:26 ERROR yfinance: Failed to get ticker 'PLTR' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 44 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:26 ERROR yfinance: $NOC: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:30:26 ERROR yfinance: $PLTR: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:30:26 ERROR yfinance: $PLTR: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:30:26 ERROR yfinance: $NOC: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:30:26 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:30:26 ERROR yfinance: Failed to get ticker 'LMT' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 50 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:26 ERROR yfinance: $LMT: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:30:26 ERROR yfinance: $LMT: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:30:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:30:28 ERROR yfinance: Failed to get ticker 'LHX' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 47 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:30:28 ERROR yfinance: $LHX: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:30:28 ERROR yfinance: $LHX: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:30:52 WARNING __main__: [LDOS] insider_trades fetch timed out after 30s
+  [LDOS] done — signals=1
+2026-06-26 14:30:53 WARNING __main__: [BAH] insider_trades fetch timed out after 30s
+  [BAH] done — signals=2
+2026-06-26 14:30:55 WARNING __main__: [RTX] insider_trades fetch timed out after 30s
+2026-06-26 14:30:55 WARNING __main__: [GD] insider_trades fetch timed out after 30s
+2026-06-26 14:30:56 WARNING __main__: [NOC] insider_trades fetch timed out after 30s
+2026-06-26 14:30:56 WARNING __main__: [PLTR] insider_trades fetch timed out after 30s
+2026-06-26 14:30:56 WARNING __main__: [LMT] insider_trades fetch timed out after 30s
+  [LMT] done — signals=2
+  [NOC] done — signals=1
+  [PLTR] done — signals=2
+2026-06-26 14:30:58 WARNING __main__: [LHX] insider_trades fetch timed out after 30s
+  [RTX] done — signals=1
+  [LHX] done — signals=1
+  [GD] done — signals=1
+2026-06-26 14:31:06 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.CRWD&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:31:06 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.SAIC&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:31:08 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:31:08 ERROR yfinance: Failed to get ticker 'CRWD' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 56 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:31:08 ERROR yfinance: $CRWD: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:31:08 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:31:08 ERROR yfinance: $CRWD: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:31:09 ERROR yfinance: Failed to get ticker 'SAIC' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 60 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:31:09 ERROR yfinance: $SAIC: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:31:09 ERROR yfinance: $SAIC: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:31:11 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.ORCL&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:31:11 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.AXON&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:31:11 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.PANW&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:31:12 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.AMD&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:31:13 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:31:13 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.NOW&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:31:13 ERROR yfinance: Failed to get ticker 'PANW' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 52 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:31:13 ERROR yfinance: $PANW: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:31:13 ERROR yfinance: $PANW: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:31:13 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.NVDA&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:31:13 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:31:13 ERROR yfinance: Failed to get ticker 'AXON' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 70 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:31:13 ERROR yfinance: $AXON: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:31:13 ERROR yfinance: $AXON: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:31:14 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:31:14 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:31:15 ERROR yfinance: Failed to get ticker 'AMD' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 78 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:31:15 ERROR yfinance: Failed to get ticker 'NVDA' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 53 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:31:15 ERROR yfinance: $AMD: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:31:15 ERROR yfinance: $NVDA: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:31:15 ERROR yfinance: $AMD: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:31:15 ERROR yfinance: $NVDA: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:31:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:31:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:31:25 ERROR yfinance: Failed to get ticker 'NOW' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 0 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:31:26 ERROR yfinance: Failed to get ticker 'ORCL' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 56 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:31:26 ERROR yfinance: $NOW: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:31:26 ERROR yfinance: $ORCL: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:31:26 ERROR yfinance: $NOW: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:31:26 ERROR yfinance: $ORCL: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:31:38 WARNING __main__: [CRWD] insider_trades fetch timed out after 30s
+2026-06-26 14:31:38 WARNING __main__: [SAIC] insider_trades fetch timed out after 30s
+  [SAIC] done — signals=2
+  [CRWD] done — signals=1
+2026-06-26 14:31:43 WARNING __main__: [PANW] insider_trades fetch timed out after 30s
+2026-06-26 14:31:43 WARNING __main__: [AXON] insider_trades fetch timed out after 30s
+2026-06-26 14:31:44 WARNING __main__: [AMD] insider_trades fetch timed out after 30s
+2026-06-26 14:31:44 WARNING __main__: [NVDA] insider_trades fetch timed out after 30s
+  [PANW] done — signals=2
+  [NVDA] done — signals=1
+2026-06-26 14:31:51 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.JPM&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:31:53 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:31:53 ERROR yfinance: Failed to get ticker 'JPM' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 47 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:31:53 ERROR yfinance: $JPM: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:31:53 ERROR yfinance: $JPM: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:31:55 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.UNH&order=date.asc&limit=35 "HTTP/2 200 OK"
+  [AXON] done — signals=1
+  [AMD] done — signals=1
+2026-06-26 14:31:55 WARNING __main__: [NOW] insider_trades fetch timed out after 30s
+2026-06-26 14:31:55 WARNING __main__: [ORCL] insider_trades fetch timed out after 30s
+2026-06-26 14:31:57 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:31:57 ERROR yfinance: Failed to get ticker 'UNH' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 48 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:31:57 ERROR yfinance: $UNH: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:31:57 ERROR yfinance: $UNH: possibly delisted; no price data found  (period=1d)
+  [NOW] done — signals=1
+  [ORCL] done — signals=1
+2026-06-26 14:31:57 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.CRM&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:32:00 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:32:00 ERROR yfinance: Failed to get ticker 'CRM' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 46 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:32:00 ERROR yfinance: $CRM: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:32:00 ERROR yfinance: $CRM: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:32:02 INFO httpx: HTTP Request: GET https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?select=date%2Copen%2Chigh%2Clow%2Cclose%2Cvolume%2Cmarket_cap&ticker=eq.SNOW&order=date.asc&limit=35 "HTTP/2 200 OK"
+2026-06-26 14:32:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-06-26 14:32:03 ERROR yfinance: Failed to get ticker 'SNOW' reason: Failed to perform, curl: (7) Failed to connect to fc.yahoo.com port 443 after 47 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+2026-06-26 14:32:03 ERROR yfinance: $SNOW: possibly delisted; no price data found  (period=65d)
+2026-06-26 14:32:03 ERROR yfinance: $SNOW: possibly delisted; no price data found  (period=1d)
+2026-06-26 14:32:23 WARNING __main__: [JPM] insider_trades fetch timed out after 30s
+  [JPM] done — signals=1
+2026-06-26 14:32:27 WARNING __main__: [UNH] insider_trades fetch timed out after 30s
+2026-06-26 14:32:30 WARNING __main__: [CRM] insider_trades fetch timed out after 30s
+2026-06-26 14:32:33 WARNING __main__: [SNOW] insider_trades fetch timed out after 30s
+  [UNH] done — signals=1
+  [CRM] done — signals=1
+  [SNOW] done — signals=1
+2026-06-26 14:32:37 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/scans "HTTP/2 201 Created"
+[db] Scan synced to Supabase
+
+============================================================
+DAILY SCAN — 2026-06-26
+============================================================
+VIX: 18.89 (NORMAL)
+Macro go: YES
+
+Tickers scanned: 20
+Eligible:        20
+Debate ready:    5
+
+PROCEED TO DEBATE: BAH, LMT, PLTR, SAIC, PANW
+
+NO CONVERGENCE: LDOS, NOC, RTX, LHX, GD, CRWD, NVDA, AXON, AMD, NOW, ORCL, JPM, UNH, CRM, SNOW
+============================================================
+Full packet: logs/predictions/scan_2026-06-26.json
+[Fri Jun 26 02:32:39 PM CDT 2026] Scan complete. Starting debate...
+All 5 predictions logged and scan record updated. Session complete.
+
+---
+
+**PM Window Debate Session Summary — 2026-06-26**
+
+**Macro:** CLEAR (VIX 18.89, normal regime). Effective threshold: **60** (cold start −5 from 65).
+
+**Debates run:** 5 of 5 candidates (BAH, LMT, PLTR, SAIC, PANW)
+
+**Results — all SKIP:**
+
+| Ticker | Score | Reason |
+|--------|-------|--------|
+| SAIC | 60 | `adversarial_review_downgrade` — pre-adversarial 68 (ENTER), challenged on IDIQ task order ambiguity |
+| BAH | 56 | `score_below_threshold` — strong fresh contracts (Jun 22-23), but GSA-routed; all 8-Ks stale |
+| PLTR | 46 | `score_below_threshold` — building short interest (+10.5% MoM) headwind; single small DHS contract |
+| LMT | 37 | `score_below_threshold` — mega-cap routine program extensions; "already priced in" unanswered |
+| PANW | 30 | `score_below_threshold` — zero fresh fundamental signals; short covering alone insufficient |
+
+**No push notifications sent** (no final ENTER decisions).
+
+**Critical data quality issues this session:** Technicals pipeline failed for all 20 tickers ("No price history"), Yahoo Finance options flow connection failed across all tickers, insider trades API timed out on all tickers, sector rotation data unavailable. Only gov contracts and 8-K SEC filings were functional — and most 8-Ks were stale (>3 days). SAIC had by far the strongest contract signal ($2.1B across 8 agencies in 10 days), but IDIQ task order uncertainty prevented the adversarial review from clearing it. The data pipeline failures are a recurring issue worth investigating.
+[Fri Jun 26 02:50:55 PM CDT 2026] Debate session complete.

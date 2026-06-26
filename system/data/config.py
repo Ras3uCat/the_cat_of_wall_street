@@ -62,5 +62,9 @@ EDGAR_USER_AGENT = os.getenv("EDGAR_USER_AGENT", "CatOfWallStreet skyjumper32@gm
 # USASpending.gov API base URL
 USASPENDING_BASE = "https://api.usaspending.gov/api/v2"
 
+# Quiver Quantitative — congressional trading signal (free tier, requires account)
+# Sign up at https://www.quiverquant.com/sources/congresstrading
+QUIVER_API_KEY = os.getenv("QUIVER_API_KEY", "")
+
 # SEC EDGAR submissions API base (CIK-based — accurate company match)
 EDGAR_SUBMISSIONS_BASE = "https://data.sec.gov/submissions"

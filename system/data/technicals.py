@@ -8,16 +8,18 @@ a standalone trigger.
 Indicators:
 - RSI (14-day): <30 oversold, >70 overbought
 - SMA 20 and SMA 50: trend direction
-- VWAP (current session): intraday fair value reference
 - Volume clustering: "slow grind" pattern detection
 - Liquidity trap: breakout on thin volume (fade signal)
+
+Data source: reuses the price_history already fetched by fetch_market_data
+(cache hit — no additional Yahoo Finance requests).
 """
 import argparse
 import json
 import pandas as pd
-import yfinance as yf
 from datetime import date
 import cache
+import fetch_market_data
 
 
 def _rsi(closes: pd.Series, period: int = 14) -> float | None:
@@ -29,14 +31,6 @@ def _rsi(closes: pd.Series, period: int = 14) -> float | None:
     rs = gain / loss.replace(0, float("nan"))
     rsi = 100 - (100 / (1 + rs))
     return round(float(rsi.iloc[-1]), 1)
-
-
-def _vwap(hist: pd.DataFrame) -> float | None:
-    if hist.empty:
-        return None
-    typical = (hist["High"] + hist["Low"] + hist["Close"]) / 3
-    vwap = (typical * hist["Volume"]).cumsum() / hist["Volume"].cumsum()
-    return round(float(vwap.iloc[-1]), 2)
 
 
 def _volume_clustering(hist: pd.DataFrame, window: int = 5) -> dict:
@@ -90,19 +84,31 @@ def compute(ticker: str) -> dict:
         return cached
 
     try:
-        stock = yf.Ticker(ticker)
-        hist = stock.history(period="65d")
-        today_hist = stock.history(period="1d", interval="1m")
+        market = fetch_market_data.fetch(ticker, period_days=65)
 
-        if hist.empty:
-            return {"ticker": ticker.upper(), "status": "error", "error": "No price history"}
+        if market.get("status") != "ok" or not market.get("price_history"):
+            return {"ticker": ticker.upper(), "status": "error", "error": "No price history available"}
+
+        ph = market["price_history"]
+        if len(ph) < 5:
+            return {"ticker": ticker.upper(), "status": "error", "error": "Insufficient price history"}
+
+        hist = pd.DataFrame([
+            {
+                "Open":   float(r["open"] or 0),
+                "High":   float(r["high"] or 0),
+                "Low":    float(r["low"] or 0),
+                "Close":  float(r["close"] or 0),
+                "Volume": float(r.get("volume") or 0),
+            }
+            for r in ph
+        ]).dropna(subset=["Close"])
 
         closes = hist["Close"]
         rsi = _rsi(closes)
         sma20 = round(float(closes.rolling(20).mean().iloc[-1]), 2) if len(closes) >= 20 else None
         sma50 = round(float(closes.rolling(50).mean().iloc[-1]), 2) if len(closes) >= 50 else None
-        current_price = round(float(closes.iloc[-1]), 2)
-        vwap = _vwap(today_hist) if not today_hist.empty else None
+        current_price = market["current_price"]
 
         trend = "neutral"
         if sma20 and sma50:
@@ -127,8 +133,8 @@ def compute(ticker: str) -> dict:
             "sma_20": sma20,
             "sma_50": sma50,
             "trend": trend,
-            "vwap_today": vwap,
-            "price_vs_vwap": round(current_price - vwap, 2) if vwap else None,
+            "vwap_today": None,
+            "price_vs_vwap": None,
             "volume_clustering": _volume_clustering(hist),
             "liquidity_trap": _liquidity_trap(hist),
             "timing_note": (

@@ -34,7 +34,7 @@ SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 ARCHIVES_URL = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{doc}"
 
 _TICKERS_CACHE_KEY = "edgar_company_tickers"
-_XML_FETCH_CAP = 5  # max Form 4 XMLs per ticker per scan — EDGAR rate limit is 10 req/s
+_XML_FETCH_CAP = 3  # max Form 4 XMLs per ticker per scan — EDGAR rate limit is 10 req/s; 3 keeps total under 45s
 
 # Transaction codes we care about
 PURCHASE_CODES = {"P"}

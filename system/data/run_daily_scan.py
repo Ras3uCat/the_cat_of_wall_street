@@ -30,6 +30,7 @@ import fetch_market_data
 import fetch_options
 import fetch_insider_trades
 import fetch_gov_contracts
+import fetch_congress_trades
 import fetch_filings
 import fetch_macro
 import fetch_sector_rotation
@@ -65,21 +66,26 @@ def _scan_ticker(ticker: str) -> dict:
     if not gate["eligible"]:
         return {"ticker": ticker, "eligible": False, "fail_reasons": gate["fail_reasons"]}
 
+    # Fetch market data first so the 65-day cache is warm before technicals runs.
+    # technicals.compute() reads from this same cache — no second Yahoo Finance hit.
+    market_data = fetch_market_data.fetch(ticker, period_days=65)
+
     # Fetch all signals in parallel
     signal_fns = {
-        "market_data":     lambda: fetch_market_data.fetch(ticker),
-        "options_flow":    lambda: fetch_options.fetch(ticker),
-        "insider_trades":  lambda: fetch_insider_trades.fetch(ticker),
-        "gov_contracts":   lambda: fetch_gov_contracts.fetch(ticker),
-        "sec_filings":     lambda: fetch_filings.fetch(ticker),
-        "technicals":      lambda: technicals.compute(ticker),
-        "dark_pool":       lambda: DARK_POOL_SIGNAL,
+        "market_data":      lambda: market_data,
+        "options_flow":     lambda: fetch_options.fetch(ticker),
+        "insider_trades":   lambda: fetch_insider_trades.fetch(ticker),
+        "gov_contracts":    lambda: fetch_gov_contracts.fetch(ticker),
+        "congress_trades":  lambda: fetch_congress_trades.fetch(ticker),
+        "sec_filings":      lambda: fetch_filings.fetch(ticker),
+        "technicals":       lambda: technicals.compute(ticker),
+        "dark_pool":        lambda: DARK_POOL_SIGNAL,
     }
 
     signals = {}
     with ThreadPoolExecutor(max_workers=6) as ex:
         future_to_name = {ex.submit(fn): name for name, fn in signal_fns.items()}
-        done, not_done = wait(future_to_name.keys(), timeout=30)
+        done, not_done = wait(future_to_name.keys(), timeout=60)
         for future in done:
             name = future_to_name[future]
             try:
@@ -89,8 +95,8 @@ def _scan_ticker(ticker: str) -> dict:
                 log.exception(f"[{ticker}] {name} fetch raised exception")
         for future in not_done:
             name = future_to_name[future]
-            signals[name] = {"status": "timeout", "error": f"{name} fetch timed out after 30s"}
-            log.warning(f"[{ticker}] {name} fetch timed out after 30s")
+            signals[name] = {"status": "timeout", "error": f"{name} fetch timed out after 60s"}
+            log.warning(f"[{ticker}] {name} fetch timed out after 60s")
             future.cancel()
 
     # Count signal categories that produced a meaningful result.
@@ -110,6 +116,8 @@ def _scan_ticker(ticker: str) -> dict:
     if signals.get("sec_filings", {}).get("material_filing_count", 0) > 0:
         fundamental += 1
     if signals.get("market_data", {}).get("short_signal") in ("squeeze_setup", "covering"):
+        fundamental += 1
+    if signals.get("congress_trades", {}).get("purchase_count", 0) > 0:
         fundamental += 1
 
     tech = signals.get("technicals", {})
