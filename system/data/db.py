@@ -331,11 +331,11 @@ def upsert_macro_snapshot(data: dict) -> bool:
         return False
 
 
-def upsert_price_history(ticker: str, rows: list[dict], market_cap: int) -> bool:
+def upsert_price_history(ticker: str, rows: list[dict], market_cap: int, source: str = "yfinance") -> bool:
     """
     Write daily OHLCV rows for a ticker into price_history.
-    Called after every successful yfinance fetch to build a Supabase-backed
-    fallback. Non-blocking — caller should wrap in try/except.
+    Called after every successful fetch to build a Supabase-backed fallback.
+    Non-blocking — caller should wrap in try/except.
     """
     client = get_client()
     if not client or not rows:
@@ -350,7 +350,7 @@ def upsert_price_history(ticker: str, rows: list[dict], market_cap: int) -> bool
             "close": r.get("close"),
             "volume": r.get("volume"),
             "market_cap": market_cap,
-            "source": "yfinance",
+            "source": source,
         }
         for r in rows
     ]
@@ -375,11 +375,12 @@ def get_price_history(ticker: str, days: int = 35) -> list[dict]:
             client.table("price_history")
             .select("date,open,high,low,close,volume,market_cap")
             .eq("ticker", ticker.upper())
-            .order("date", desc=False)
+            .order("date", desc=True)
             .limit(days)
             .execute()
         )
-        return result.data or []
+        # Reverse so callers receive chronologically ascending data (oldest first)
+        return list(reversed(result.data or []))
     except Exception as e:
         print(f"[db] get_price_history failed: {e}")
         return []

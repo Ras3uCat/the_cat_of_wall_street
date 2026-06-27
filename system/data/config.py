@@ -62,9 +62,20 @@ EDGAR_USER_AGENT = os.getenv("EDGAR_USER_AGENT", "CatOfWallStreet skyjumper32@gm
 # USASpending.gov API base URL
 USASPENDING_BASE = "https://api.usaspending.gov/api/v2"
 
+# Claude model used for the 7-agent debate in cloud scan sessions
+DEBATE_MODEL = "claude-sonnet-4-6"
+
+# Number of resolved executed predictions required before cold_start is lifted
+COLD_START_PREDICTION_THRESHOLD = 30
+
 # Quiver Quantitative — congressional trading signal (free tier, requires account)
 # Sign up at https://www.quiverquant.com/sources/congresstrading
 QUIVER_API_KEY = os.getenv("QUIVER_API_KEY", "")
+
+# Finnhub — fallback market data when Yahoo Finance is unavailable
+# Used for market cap, sector/industry, and last-resort price quote
+# Free tier at https://finnhub.io/ — set FINNHUB_API in .env
+FINNHUB_API_KEY = os.getenv("FINNHUB_API", "")
 
 # SEC EDGAR submissions API base (CIK-based — accurate company match)
 EDGAR_SUBMISSIONS_BASE = "https://data.sec.gov/submissions"

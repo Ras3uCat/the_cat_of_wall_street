@@ -53,22 +53,22 @@ def _yfinance_earnings(ticker: str) -> date | None:
         return None
 
 
-def _last_earnings_8k(ticker: str) -> date | None:
+def _last_earnings_8k(ticker: str) -> tuple[date | None, bool]:
     """
-    Returns the date of the most recent Form 8-K Item 2.02 (Results of Operations)
-    within the last 90 days, or None if not found. Looks back 90 days to cover
-    the full quarterly cycle even when yfinance fails to return a forward date.
+    Returns (last_report_date, fetch_ok).
+    last_report_date: date of most recent 8-K Item 2.02 within last 90 days, or None.
+    fetch_ok: False if EDGAR was unreachable (caller should not cache the result).
     """
     try:
         result = fetch_filings.fetch(ticker, days=90)
         if result.get("status") != "ok":
-            return None
+            return None, False  # fetch error — caller must not cache
         filings = [f for f in result.get("filings", []) if f.get("item") == "2.02"]
         if not filings:
-            return None
-        return date.fromisoformat(max(f["date"] for f in filings))
+            return None, True  # EDGAR reachable, genuinely no recent 8-K
+        return date.fromisoformat(max(f["date"] for f in filings)), True
     except Exception:
-        return None
+        return None, False  # unexpected error — treat as fetch failure
 
 
 def fetch(ticker: str) -> dict:
@@ -79,9 +79,13 @@ def fetch(ticker: str) -> dict:
 
     ticker = ticker.upper()
     next_earnings = _yfinance_earnings(ticker)
-    last_report_date = _last_earnings_8k(ticker)
+
+    # _last_earnings_8k returns (date | None, fetch_ok: bool)
+    # fetch_ok=False means EDGAR was unreachable — don't cache that result.
+    last_report_date, edgar_ok = _last_earnings_8k(ticker)
 
     today = date.today()
+    should_cache = True
 
     if next_earnings is None:
         if last_report_date is not None:
@@ -100,8 +104,22 @@ def fetch(ticker: str) -> dict:
             }
             if not result["earnings_clear"]:
                 result["note"] += f". Within {EARNINGS_BUFFER_DAYS}-day buffer — blocking."
+        elif not edgar_ok:
+            # Both yfinance and EDGAR fetch failed — transient error, do not cache.
+            # Return conservative block but allow the next call to retry fresh.
+            should_cache = False
+            result = {
+                "ticker": ticker,
+                "next_earnings": None,
+                "days_out": None,
+                "confidence": "unknown",
+                "source": "fetch_error",
+                "earnings_clear": False,
+                "note": "yfinance and EDGAR both unreachable — blocking conservatively. Result not cached; next call will retry.",
+                "status": "ok",
+            }
         else:
-            # Truly unknown — conservative block
+            # EDGAR reachable but no 8-K Item 2.02 in lookback window — genuinely unknown.
             result = {
                 "ticker": ticker,
                 "next_earnings": None,
@@ -114,6 +132,7 @@ def fetch(ticker: str) -> dict:
             }
     else:
         days_out = (next_earnings - today).days
+        recently_reported = last_report_date is not None
         confidence = "confirmed" if recently_reported else "estimated"
         result = {
             "ticker": ticker,
@@ -127,7 +146,7 @@ def fetch(ticker: str) -> dict:
         if not result["earnings_clear"]:
             result["note"] = f"Earnings in {days_out} day(s) — within {EARNINGS_BUFFER_DAYS}-day buffer. Binary event risk."
 
-    if result["status"] == "ok":
+    if result["status"] == "ok" and should_cache:
         cache.set(key, result)
     return result
 

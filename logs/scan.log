@@ -368,3 +368,6 @@ All 5 predictions logged and scan record updated. Session complete.
 
 **Critical data quality issues this session:** Technicals pipeline failed for all 20 tickers ("No price history"), Yahoo Finance options flow connection failed across all tickers, insider trades API timed out on all tickers, sector rotation data unavailable. Only gov contracts and 8-K SEC filings were functional — and most 8-Ks were stale (>3 days). SAIC had by far the strongest contract signal ($2.1B across 8 agencies in 10 days), but IDIQ task order uncertainty prevented the adversarial review from clearing it. The data pipeline failures are a recurring issue worth investigating.
 [Fri Jun 26 02:50:55 PM CDT 2026] Debate session complete.
+[resolve] Running outcome resolution for 2026-06-26...
+
+[resolve] Done — 0 resolved, 0 not yet due, 0 errors

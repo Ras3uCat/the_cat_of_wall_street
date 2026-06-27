@@ -39,8 +39,8 @@ import universe_check
 import db
 from config import PREDICTIONS_DIR, PROJECT_ROOT, SIGNAL_CONVERGENCE_THRESHOLD
 
-# How many tickers to scan in parallel
-_SCAN_WORKERS = 8
+# Reduced from 4 — double-fetch fix halved Yahoo load; 3 further reduces concurrent pressure
+_SCAN_WORKERS = 3
 
 
 def _load_default_watchlist() -> list[str]:
@@ -60,8 +60,8 @@ DARK_POOL_SIGNAL = {
 
 
 def _scan_ticker(ticker: str) -> dict:
-    # Stagger parallel workers to avoid hammering Yahoo Finance simultaneously
-    time.sleep(random.uniform(0, 5))
+    # Stagger workers so fc.yahoo.com crumb fetches don't overlap
+    time.sleep(random.uniform(0, 12))
     gate = universe_check.check(ticker)
     if not gate["eligible"]:
         return {"ticker": ticker, "eligible": False, "fail_reasons": gate["fail_reasons"]}
@@ -256,7 +256,7 @@ def _print_summary(packet: dict) -> None:
     if summary["no_signal_convergence"]:
         print(f"\nNO CONVERGENCE: {', '.join(summary['no_signal_convergence'])}")
     print("=" * 60)
-    print(f"Full packet: logs/predictions/scan_{packet['scan_date']}.json")
+    print(f"Full packet: logs/predictions/scan_{packet['scan_date']}_{packet.get('session_type', 'pre_market')}.json")
 
 
 if __name__ == "__main__":

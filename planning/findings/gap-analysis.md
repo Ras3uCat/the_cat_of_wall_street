@@ -1,7 +1,7 @@
 # Gap Analysis — AI Trading System Strategy
 
 **Source:** Review of `ai-trading-system-strategy.md`, June 2026  
-**Last updated:** 2026-06-24 — GAP-22–30 addressed; GAP-31–34 added and resolved; see resolution tracking below  
+**Last updated:** 2026-06-27 — GAP-43–49 added and resolved; root cause of Yahoo rate-limiting identified (Chrome UA blocked; short UA works); all signals now functional  
 **Status:** Active — gaps being addressed in strategy doc updates
 
 Each gap below links to a future `01_active/` feature or is resolved in the strategy doc.
@@ -392,6 +392,167 @@ The execution flow used `floor((equity × size_pct) / price)` to calculate whole
 
 ---
 
+---
+
+### GAP-36: Double Yahoo Finance Fetch Per Ticker  ← NEW / HIGH
+
+`universe_check.py:_check_adv_and_cap()` calls `fetch_market_data.fetch(ticker)` with the default `period_days=30`, producing cache key `market_TICKER_30d`. The scan orchestrator (`run_daily_scan.py:71`) then calls `fetch_market_data.fetch(ticker, period_days=65)`, producing a different key `market_TICKER_65d` — a cache miss. Every ticker in the watchlist triggers **two separate Yahoo Finance requests** instead of one. At 20 tickers, this is 40 Yahoo requests when 20 would suffice. This is likely the primary driver of the Yahoo rate-limiting failures seen in production scans where technicals, options, and sector rotation all fail with connection errors.
+
+**Fix:** Change `universe_check.py:26` from `fetch_market_data.fetch(ticker)` to `fetch_market_data.fetch(ticker, period_days=65)`. ADV and market cap calculations work correctly on any superset of data; 65 days covers both the 30-day ADV average and the 50-day SMA required by technicals.
+
+**Resolved (2026-06-27):** `universe_check.py:_check_adv_and_cap()` now calls `fetch_market_data.fetch(ticker, period_days=65)`. Both universe check and scan share the same cache key — one Yahoo fetch per ticker.
+
+---
+
+### GAP-37: Scan Summary Prints Wrong Output Filename  ← NEW / LOW
+
+`run_daily_scan.py:_print_summary()` printed `scan_{scan_date}.json` but the file written at line 219 is `scan_{scan_date}_{session_type}.json`. Any script or human following the printed path to inspect the scan packet found a non-existent file.
+
+**Resolved (2026-06-27):** `_print_summary()` now prints `scan_{scan_date}_{session_type}.json` to match the actual path.
+
+---
+
+### GAP-38: `debate_narrative` Embedded in JSON Block — Silent Data Loss Risk  ← NEW / MEDIUM
+
+`debate.py` asked Claude to include `"debate_narrative": "Full multi-paragraph debate narrative..."` as a field inside the structured JSON block. A large multi-line string embedded in a JSON value fails silently when it contains unescaped quotes, backticks (which close the code fence), or when the combined JSON exceeds reliable regex extraction. `debate.py:260` already had a fallback to `_full_response` (the complete API response text), but if the JSON block itself failed to parse, the entire debate result was dropped — ticker logged as `ERROR`.
+
+**Fix:** Remove `debate_narrative` from the JSON schema entirely. The full API response text (`_full_response`) is already the complete and verbatim debate record — no need to duplicate it inside the JSON. The JSON block should contain only structured fields (scores, decision, signals). `debate_narrative` is always sourced from `_full_response`.
+
+**Resolved (2026-06-27):** `debate_narrative` removed from the JSON schema in the user message. `debate.py:276` now unconditionally uses `result.get("_full_response", "")` as the narrative. The JSON block is smaller and more reliably parsed.
+
+---
+
+### GAP-39: `cold_start` Hardcoded `True` Forever in Cloud Sessions  ← NEW / MEDIUM
+
+`debate.py:183` had `cold_start = True  # always true in non-local (GHA) sessions`. This permanently applies the 5-point threshold reduction (`_effective_threshold`) to every cloud debate — even after 60+ resolved predictions accumulate. After the learning period ends, this means the effective debate threshold is always 5 points lower than calibrated, systematically favoring ENTER over SKIP regardless of data quality.
+
+**Fix:** Query the `predictions` table for resolved, executed count. Use `cold_start = True` only while fewer than 30 resolved predictions exist.
+
+**Resolved (2026-06-27):** `_is_cold_start()` function added to `debate.py` — queries Supabase for `resolved=True, executed=True` count; returns `True` only when count < `COLD_START_PREDICTION_THRESHOLD` (30, defined in `config.py`). Falls back to `True` if Supabase is unavailable. `main()` now sets `cold_start = _is_cold_start()`.
+
+---
+
+### GAP-40: `DEBATE_MODEL` Hardcoded Magic String  ← NEW / LOW
+
+`debate.py:96` had `model="claude-sonnet-4-6"` as a literal string. Model updates require a code change to a non-obvious location buried inside the debate orchestrator.
+
+**Resolved (2026-06-27):** `DEBATE_MODEL = "claude-sonnet-4-6"` and `COLD_START_PREDICTION_THRESHOLD = 30` added to `config.py`. `debate.py` imports and uses these constants.
+
+---
+
+### GAP-41: Yahoo Rate-Limiting Worsened by Worker Count  ← NEW / MEDIUM
+
+With `_SCAN_WORKERS = 4`, the scan ran 4 tickers concurrently, each spawning up to 6 parallel sub-fetches (market data, options, insider, contracts, filings, technicals). Combined with the double-fetch bug (GAP-36), this produced up to 48 Yahoo Finance requests in a short burst from the same IP. The 0–12s per-ticker jitter was per-ticker, not per-request, providing no protection for the sub-request storm. Production scan logs confirm >60% signal failure due to Yahoo blocks (technicals, options, sector rotation all failing with connection errors).
+
+**Fix:** Reduce `_SCAN_WORKERS` from 4 to 3 after applying the GAP-36 fix. The double-fetch fix alone halves the base Yahoo load; the worker reduction further reduces concurrent pressure with minimal scan time impact.
+
+**Resolved (2026-06-27):** `_SCAN_WORKERS` reduced from 4 to 3. Combined with GAP-36 fix, worst-case concurrent Yahoo requests drop from ~48 to ~18 per scan window.
+
+---
+
+### GAP-42: VWAP Structurally Unavailable at Free Tier — System Prompt Does Not Acknowledge This  ← NEW / LOW
+
+`technicals.py:136` always returns `"vwap_today": None`. VWAP requires intraday bar data; Yahoo Finance's free daily OHLCV API does not provide it. The Technical Analyst output format in `trading_system.md` Section 3 requires `VWAP: [price vs VWAP — above/below/at]` with no acknowledgment that this field is structurally unavailable. Every debate currently has the Technical Analyst fill in "VWAP: unavailable" ad hoc, which silently affects Gate C scoring ("TA timing AND FA evidence both Good/High").
+
+**Impact:** Minor — agents handle the null gracefully in practice. But the system prompt implies VWAP is expected and agents may penalize timing confidence for a data gap that is not addressable at the free tier.
+
+**Recommended fix:** Add a note to the Technical Analyst section of the system prompt: "Note: VWAP data is unavailable at the free tier (requires intraday bars). If `vwap_today` is null, omit VWAP from the output and do not count its absence against Gate C." Alternatively, fetch intraday 5-min bars from Yahoo's intraday endpoint (available without subscription) and compute VWAP from those.
+
+**Open — Low** — agents handle this gracefully. Schedule for next system prompt revision.
+
+---
+
+### GAP-43: Earnings Calendar Check Blocks All Tickers When yfinance Fails — Zero Candidates in Every Cloud Scan  ← NEW / CRITICAL
+
+**Evidence:** `logs/scan.log` from 2026-06-26 midday scan shows all 20 watchlist tickers blocked as ineligible with "No earnings date found and no recent 8-K to infer from." Simultaneously, all yfinance calls fail with `curl: (7) Failed to connect to fc.yahoo.com`. The cron scans (GAP-13/14, now resolved) run but always produce `Eligible: 0, Debate ready: 0` — the debate, logging, and notification pipeline is never reached.
+
+`fetch_earnings_calendar.py` has two sources:
+1. `_yfinance_earnings()` — fails whenever `fc.yahoo.com` is down (crumb-based; cloud runs can't reach it)
+2. `_last_earnings_8k()` — calls `fetch_filings.fetch(ticker, days=90)` via EDGAR, which may work, but companies that reported Q4 earnings in January/February 2026 fall outside the 90-day window
+
+When both return `None`, the conservative fallback sets `earnings_clear: False` and blocks. The conservative intent is correct; the side effect is that in the cloud execution environment, 100% of tickers are blocked in every scan. The 3-cron automation has produced zero debate candidates since it was deployed.
+
+**Root cause:** The code cannot distinguish "we checked and found no earnings data" from "the data source was unreachable." Both produce `None` from `_yfinance_earnings()` and `_last_earnings_8k()`, triggering the conservative block.
+
+**Fix options (in priority order):**
+1. **Add Supabase earnings date store** — when yfinance successfully returns an earnings date, write it to a `earnings_calendar` table with `ticker, next_earnings, confidence, fetched_at`. On fetch failure, fall back to this table. If the stored date is still in the future and was fetched within the last 7 days, treat it as valid. Cloud runs reuse the local session's confirmed dates.
+2. **Extend EDGAR lookback to 180 days** — companies that reported Q4 in January would have a 2.02 8-K within 180 days. Currently 90 days misses a full quarter for companies with off-cycle fiscal years.
+3. **Distinguish fetch errors from "no data"** — in `_last_earnings_8k`, return a distinct sentinel (e.g., `"error"` vs `None`) when `status != "ok"`. In `fetch_earnings_calendar.fetch`, if `_last_earnings_8k` returned an error (not empty results), proceed without the conservative block rather than blocking.
+
+**Priority:** Fix before 2026-08-21 go-live. The entire cron automation is non-functional until this is resolved.
+
+---
+
+### GAP-44: `fetch_sector_rotation.py` Uses `yf.download()` — Always Fails in Cloud When fc.yahoo.com Is Down  ← NEW / HIGH
+
+`fetch_sector_rotation.py:47` uses `yf.download(tickers, period="95d")`, which requires Yahoo Finance's crumb mechanism (fc.yahoo.com). In the cloud execution environment, all 11 sector ETFs fail before any ticker scan begins (confirmed in `logs/scan.log` — all ETFs show `curl: (7) Failed to connect to fc.yahoo.com`).
+
+`fetch_market_data.py` solved the same fc.yahoo.com problem by switching to the direct Yahoo chart API (`_fetch_yahoo_chart_direct`) that does not require a crumb. `fetch_sector_rotation.py` was not updated with the same fix.
+
+**Impact:** Sector rotation data is always `status: error` in automated cloud scans. Component 3 (Market Regime Alignment, 0–20 pts) can only score on VIX — the sector factor produces `sector_rotation_status: unknown` for every ticker in every debate. The session summary for 2026-06-26 midday explicitly notes: "All sector rotation data unavailable (returned null) — regime alignment will score as unknown."
+
+**Fix:** Replace the `yf.download()` batch call with individual direct Yahoo chart API calls per ETF, using the same `_fetch_yahoo_chart_direct`-style subprocess curl that `fetch_market_data.py` uses. Cache per-ETF separately so one ETF failure doesn't wipe out all 11. The relative performance computation remains unchanged — only the data source changes.
+
+**Note:** This is blocked on GAP-43 (zero eligible tickers) for immediate impact, but should be fixed in the same pass.
+
+---
+
+### GAP-45: `db.get_price_history` Returns Oldest N Rows, Not Most Recent N — Stale Technicals from Supabase Fallback  ← NEW / MEDIUM
+
+`db.py:374-381`:
+```python
+.order("date", desc=False)
+.limit(days)
+```
+
+Ordering ascending with a row limit returns the OLDEST `days` rows, not the most recent. After 3+ months of daily writes, Supabase will contain 60–90 price rows per ticker. Calling `db.get_price_history(ticker, days=70)` will return rows from 3–4 months ago, not the 70 most recent trading days.
+
+This path is the third fallback in `fetch_market_data.py` (after Yahoo direct and yfinance). When both Yahoo paths fail (as they do in the cloud), `technicals.py` receives price history that may be months stale, making SMA20, SMA50, and RSI calculations meaningless.
+
+**Fix:** Change to `.order("date", desc=True).limit(days)` and reverse the returned list before returning, so callers always get chronologically ascending data with `price_history[-1]` being the most recent session. This matches the output format of the Yahoo-sourced paths.
+
+---
+
+### GAP-46: Approved Predictions Have No Staleness Warning in `execute.py` — Options Flow Signal Decays in 4 Hours  ← NEW / LOW
+
+`execute.py:show_pending()` displays approved orders with `scan_date` but no staleness indicator. A prediction approved on a Monday morning scan, fetched by Ryan on Tuesday afternoon, would show no warning that the 4-hour options flow signal (if that was the primary trigger) is 30+ hours stale and meaningless. The Local Session Startup Protocol (Section 11 Step 0) instructs re-validation of thesis validity, but the display provides no nudge.
+
+**Fix:** In `show_pending()`, compute `days_since_scan = (date.today() - date.fromisoformat(scan_date)).days` and display a `⚠ STALE (N days)` flag when `days_since_scan >= 1`. For predictions where `signals_fired` contains `options_flow` and `days_since_scan >= 1`, add a stronger warning: "Options flow signal expired (4h TTL) — re-check options activity before executing."
+
+---
+
+### GAP-47: `debate.py` Sets `approval_status: "rejected"` for Skips — Diverges from System Prompt's Expected `None`  ← NEW / LOW
+
+`debate.py:287` sets `prediction["approval_status"] = "rejected"` for all non-ENTER outcomes. The system prompt Section 5 example shows `'approval_status': None` for skipped predictions. While the `execute.py` Step 0 query (`eq("approval_status", "approved")`) works correctly regardless, the semantic divergence matters for any web app query or monitoring that filters predictions by status. "Rejected" implies a human reviewer vetoed the trade; the actual meaning is "score below threshold — automated skip."
+
+**Fix:** Change `debate.py:287` to `prediction["approval_status"] = None` for SKIP outcomes. Use `skip_reason` (already populated) to convey the specific reason. Alternatively, introduce a distinct value like `"auto_skip"` that distinguishes automated filtering from a manual rejection.
+
+---
+
+### GAP-48: No `requirements.txt` — `anthropic` SDK Missing from Local Venv  ← NEW / LOW
+
+No `requirements.txt`, `pyproject.toml`, or `setup.py` exists in the project root. `debate.py` requires the `anthropic` Python SDK, but it is not installed in the local `.venv` (confirmed during testing — `debate.py` exits with `ModuleNotFoundError: No module named 'anthropic'` when run locally).
+
+The cloud agent environment provides `anthropic` via its runtime, but the local environment has no install spec to reference. If the venv needs to be rebuilt, the exact package versions used in production are unrecoverable.
+
+**Impact:** `debate.py` cannot be tested or run locally without manual `pip install anthropic`. No record of which `anthropic` SDK version the cloud runs against.
+
+**Fix:** Run `.venv/bin/pip freeze > requirements.txt` to capture the current state. Verify `anthropic` is listed. Add a setup note to CLAUDE.md.
+
+---
+
+### GAP-49: Earnings Cache Stores 24-Hour EDGAR Failure Result — One Transient Error Blocks All Scans That Day  ← NEW / MEDIUM
+
+`fetch_earnings_calendar.fetch()` caches its result with a 24-hour TTL (`config.CACHE_TTL["earnings"] = 86400`). When EDGAR's `fetch_filings.fetch()` fails transiently (network timeout, rate limit, temporary outage), `_last_earnings_8k()` returns `None`, and the function writes `earnings_clear: False` (conservative block) to the cache. That cached block persists for 24 hours.
+
+**Evidence:** `logs/scan.log` shows the June 26 midday scan blocking all 20 tickers. The June 26 pm_window scan (2.5 hours later, different cloud process) ran fresh with no cache and passed all 20 tickers — confirming the failure was transient, not a permanent state. Each cloud scan session starts with an empty cache, but a local session that hits EDGAR transiently and caches a failure result would block all tickers for the rest of the business day.
+
+**Impact:** A single transient EDGAR fetch error silently blocks the affected ticker for 24 hours across all session types. If this happens in the 8 AM scan, the noon and PM scans also see the block (when sharing a local cache), even though EDGAR recovered within minutes.
+
+**Fix:** Add a distinct `status: "fetch_error"` sentinel when `fetch_filings.fetch()` returns an error status. In `fetch_earnings_calendar.fetch()`, do not cache `earnings_clear: False` results that originated from a fetch error — cache only confirmed "no data found" or confirmed "within buffer" results. On fetch error, return without caching so the next call retries.
+
+---
+
 ## Resolution Tracking
 
 | Gap | Status |
@@ -431,3 +592,17 @@ The execution flow used `floor((equity × size_pct) / price)` to calculate whole
 | GAP-33 Confidence score self-graded | **Resolved** — Component 2 replaced with 5 binary gates (A–E); Gate B penalizes unanswered bearish risks |
 | GAP-34 No adversarial challenge | **Resolved** — Adversarial Reviewer (Role 8) added as mandatory pre-execution step; CHALLENGE drops Component 2 by 8 pts |
 | GAP-35 Fractional shares not handled | **Resolved** — Execution flow now uses `notional` + `fractional_qty`; works at $100 account size |
+| GAP-36 Double Yahoo fetch per ticker | **Resolved** — `universe_check._check_adv_and_cap()` now uses `period_days=65`; same cache key as scan + technicals |
+| GAP-37 Scan summary wrong filename | **Resolved** — `_print_summary()` now includes `session_type` in logged path |
+| GAP-38 debate_narrative in JSON block | **Resolved** — field removed from JSON schema; `debate_narrative` always sourced from `_full_response` |
+| GAP-39 cold_start hardcoded True | **Resolved** — `_is_cold_start()` queries resolved prediction count; drops cold_start after 30 resolved trades |
+| GAP-40 DEBATE_MODEL magic string | **Resolved** — `DEBATE_MODEL` constant in `config.py`; imported by `debate.py` |
+| GAP-41 Yahoo rate-limiting worker count | **Resolved** — `_SCAN_WORKERS` reduced 4→3; combined with GAP-36, worst-case concurrent Yahoo requests drop ~62% |
+| GAP-42 VWAP unavailable at free tier | **Open — Low** — agents handle null gracefully; system prompt note recommended in next revision |
+| GAP-43 Earnings calendar blocks all tickers | **Resolved (2026-06-27)** — `_last_earnings_8k` now returns `(date, fetch_ok)` tuple; `fetch_error` results not cached; next call retries fresh |
+| GAP-44 fetch_sector_rotation uses yf.download | **Resolved (2026-06-27)** — rewritten to use direct Yahoo chart API per-ETF; UA changed to short form (Chrome UA was rate-limited); 11/11 ETFs now fetched |
+| GAP-45 get_price_history returns oldest rows | **Resolved (2026-06-27)** — `order("date", desc=True)` + reverse; most recent N rows returned |
+| GAP-46 No staleness warning in execute.py | **Open — Low** — pending orders show scan_date but no age warning; options flow signal decays in 4h |
+| GAP-47 approval_status "rejected" vs None | **Open — Low** — SKIP predictions get "rejected" status vs system prompt's expected null; semantic divergence |
+| GAP-48 anthropic missing from requirements.txt | **Resolved (2026-06-27)** — `anthropic>=0.30.0` added to `system/data/requirements.txt` |
+| GAP-49 Earnings cache stores EDGAR failures 24h | **Resolved (2026-06-27)** — `should_cache=False` when `fetch_ok=False`; transient errors no longer write 24h blocks |

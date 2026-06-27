@@ -12,7 +12,6 @@ import os
 import re
 import sys
 import urllib.request
-import uuid
 from datetime import date
 from pathlib import Path
 
@@ -22,10 +21,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import db
-from config import SIGNAL_CONVERGENCE_THRESHOLD
+from config import SIGNAL_CONVERGENCE_THRESHOLD, DEBATE_MODEL, COLD_START_PREDICTION_THRESHOLD
 
 SYSTEM_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "trading_system.md"
-LEARNING_PERIOD_END = date(2026, 6, 29)
+LEARNING_PERIOD_END = date(2026, 8, 20)
 
 # VIX regime → base confidence threshold (per system prompt [60/65/72])
 _THRESHOLDS = {"low": 60, "normal": 65, "elevated": 72, "high": 72}
@@ -35,6 +34,22 @@ COLD_START_THRESHOLD_REDUCTION = 5
 def _effective_threshold(vix_regime: str, cold_start: bool) -> int:
     base = _THRESHOLDS.get(vix_regime or "normal", 65)
     return base - (COLD_START_THRESHOLD_REDUCTION if cold_start else 0)
+
+
+def _is_cold_start() -> bool:
+    """Cold start = fewer than COLD_START_PREDICTION_THRESHOLD resolved executed predictions."""
+    client = db.get_client()
+    if not client:
+        return True
+    try:
+        r = (client.table("predictions")
+             .select("id", count="exact")
+             .eq("resolved", True)
+             .eq("executed", True)
+             .execute())
+        return len(r.data or []) < COLD_START_PREDICTION_THRESHOLD
+    except Exception:
+        return True
 
 
 def _system_prompt() -> str:
@@ -68,7 +83,8 @@ SIGNAL DATA:
 {json.dumps(ticker_data.get('signals', {}), indent=2, default=str)}
 
 Complete all 7 agent positions, then output the final decision.
-End with a JSON block in this exact format (no trailing text after it):
+After the full debate narrative, end with a JSON block in this exact format (no trailing text after it).
+Keep the JSON compact — the narrative above IS the debate record; do not duplicate it here:
 
 ```json
 {{
@@ -88,13 +104,12 @@ End with a JSON block in this exact format (no trailing text after it):
     "risk_manager_rating": 13
   }},
   "position_size_pct": 2.0,
-  "rationale": "One-sentence primary reason for the decision.",
-  "debate_narrative": "Full multi-paragraph debate narrative summarizing all 7 agent positions."
+  "rationale": "One-sentence primary reason for the decision."
 }}
 ```"""
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model=DEBATE_MODEL,
         max_tokens=8192,
         system=_system_prompt(),
         messages=[{"role": "user", "content": user_msg}],
@@ -134,15 +149,29 @@ def _send_push(ticker: str, score: int, direction: str, move_pct: float, rationa
 
 
 def _already_debated_today(scan_date: str) -> set[str]:
-    """Return set of tickers already logged to predictions for today (pre_market debate)."""
+    """Return tickers with an approved ENTER today — midday skips these, re-debates SKIP tickers."""
     client = db.get_client()
     if not client:
         return set()
     try:
-        r = client.table("predictions").select("ticker").eq("scan_date", scan_date).execute()
+        r = (client.table("predictions").select("ticker")
+             .eq("scan_date", scan_date).eq("approval_status", "approved").execute())
         return {row["ticker"] for row in (r.data or [])}
     except Exception:
         return set()
+
+
+def _next_prediction_seq(scan_date: str) -> int:
+    """Returns the next available sequence number for today's pred_YYYYMMDD_NNN IDs."""
+    client = db.get_client()
+    if not client:
+        return 1
+    try:
+        date_str = scan_date.replace("-", "")
+        r = client.table("predictions").select("id").like("id", f"pred_{date_str}_%").execute()
+        return len(r.data or []) + 1
+    except Exception:
+        return 1
 
 
 def _write_outcome_summary(scan_id: str, summary: str):
@@ -166,7 +195,7 @@ def main():
     scan_date = packet["scan_date"]
     session_type = packet["session_type"]
     vix_regime = packet.get("macro_snapshot", {}).get("vix_regime", "normal")
-    cold_start = True  # always true in non-local (GHA) sessions
+    cold_start = _is_cold_start()
 
     all_candidates = [t for t in packet["tickers"] if t.get("proceed_to_debate")]
 
@@ -195,6 +224,18 @@ def main():
     today = date.fromisoformat(scan_date)
     in_learning_period = today < LEARNING_PERIOD_END
     outcomes = []
+    seq = _next_prediction_seq(scan_date)
+
+    # Best-effort equity read — cloud sessions have a stale account_state.json,
+    # so we read the file directly without the staleness guard.
+    equity_at_entry = 0.0
+    try:
+        import json as _json
+        from config import PROJECT_ROOT as _root
+        _state = _json.loads((_root / "logs" / "account_state.json").read_text())
+        equity_at_entry = float(_state.get("equity", 0.0) or 0.0)
+    except Exception:
+        pass
 
     for ticker_data in candidates:
         ticker = ticker_data["ticker"]
@@ -213,7 +254,7 @@ def main():
         print(f"[{ticker}] {decision} — score {score}/100 (passes: {score_passed})")
 
         prediction = {
-            "id": str(uuid.uuid4()),
+            "id": f"pred_{scan_date.replace('-', '')}_{seq:03d}",
             "scan_id": scan_id,
             "ticker": ticker,
             "scan_date": scan_date,
@@ -231,11 +272,12 @@ def main():
             "vix_at_prediction": packet["macro_snapshot"].get("vix"),
             "market_regime": vix_regime,
             "executed": False,
-            "equity_at_entry": 0.0,
-            "debate_narrative": result.get("debate_narrative") or result.get("_full_response", ""),
+            "equity_at_entry": equity_at_entry,
+            "debate_narrative": result.get("_full_response", ""),
             "fundamental_signals_fired": ticker_data.get("fundamental_signals_fired"),
             "technical_signal_fired": ticker_data.get("technical_signal_fired"),
         }
+        seq += 1
 
         if decision == "ENTER" and score_passed:
             prediction["approval_status"] = "approved"

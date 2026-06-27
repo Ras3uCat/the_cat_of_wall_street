@@ -23,7 +23,7 @@ from config import MIN_ADV, MIN_MARKET_CAP, PDT_DAY_TRADE_LIMIT, PREDICTIONS_DIR
 
 def _check_adv_and_cap(ticker: str) -> tuple[dict, dict]:
     """Single fetch (or cache hit) for both ADV and market cap via fetch_market_data."""
-    data = fetch_market_data.fetch(ticker)
+    data = fetch_market_data.fetch(ticker, period_days=65)
     stale = False
     if data.get("status") != "ok":
         # Search for most recent cached market data within the past 5 days
