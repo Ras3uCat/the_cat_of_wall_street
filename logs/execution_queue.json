@@ -1,0 +1,65 @@
+[
+  {
+    "id": "pred_20260629_026",
+    "ticker": "GD",
+    "direction": "long",
+    "position_size_pct": 7.0,
+    "confidence_score": 59,
+    "entry_price": 348.79,
+    "scan_date": "2026-06-29",
+    "session_type": "pm_window",
+    "queued_at": "2026-06-29T20:00:32.898434+00:00",
+    "executed": false
+  },
+  {
+    "id": "pred_20260629_035",
+    "ticker": "SAIC",
+    "direction": "long",
+    "position_size_pct": 8.0,
+    "confidence_score": 64,
+    "entry_price": 112.23,
+    "scan_date": "2026-06-29",
+    "session_type": "pm_window",
+    "queued_at": "2026-06-29T20:00:32.898434+00:00",
+    "executed": false
+  },
+  {
+    "id": "pred_20260630_002",
+    "ticker": "BA",
+    "direction": "long",
+    "position_size_pct": 10.0,
+    "confidence_score": 58,
+    "entry_price": 214.69,
+    "scan_date": "2026-06-30",
+    "session_type": "pre_market",
+    "queued_at": "2026-06-30T13:29:00.387618+00:00",
+    "executed": false,
+    "notes": "Score 58/100. NASA contracts $35.5B (46% revenue). DOWNTREND caution. Thin adversarial margin. Learning period \u2014 no execution until 2026-08-21."
+  },
+  {
+    "id": "pred_20260630_010",
+    "ticker": "LMT",
+    "direction": "long",
+    "position_size_pct": 5.0,
+    "confidence_score": 58,
+    "entry_price": 502.07,
+    "scan_date": "2026-06-30",
+    "session_type": "pre_market",
+    "queued_at": "2026-06-30T13:29:00.387635+00:00",
+    "executed": false,
+    "notes": "Score 58/100. Orion contract $15.5B (26% revenue, June 25). DOWNTREND caution. Reduced size 5% for A&D sector concentration with BA. Learning period \u2014 no execution until 2026-08-21."
+  },
+  {
+    "id": "pred_20260630_018",
+    "ticker": "SAIC",
+    "direction": "long",
+    "position_size_pct": 10.0,
+    "confidence_score": 90,
+    "entry_price": 112.96,
+    "scan_date": "2026-06-30",
+    "session_type": "pre_market",
+    "queued_at": "2026-06-30T13:29:00.387638+00:00",
+    "executed": false,
+    "notes": "Score 90/100 \u2014 HIGHEST CONFIDENCE TRADE TODAY. $2.2B gov contracts (30% revenue), NASA+DHS, RSI 49.6 uptrend. DAILY LIMIT NOTE: BA+LMT filled 2-position limit for 2026-06-30 pre-market. SAIC should be FIRST PRIORITY at next local session execution. Learning period \u2014 no execution until 2026-08-21."
+  }
+]
