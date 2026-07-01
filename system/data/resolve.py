@@ -128,6 +128,69 @@ def run() -> dict:
         else:
             errors += 1
 
+    # Second pass: counterfactual resolution for learning-period predictions.
+    # These were debated and approved but not executed — entry_price is never written
+    # to Supabase for them (execute.py:mark_executed only runs on real fills), so we
+    # fetch the scan_date closing price as the hypothetical entry.
+    try:
+        r2 = client.table("predictions").select(
+            "id,ticker,predicted_direction,predicted_move_pct,predicted_timeframe_days,"
+            "entry_price,scan_date"
+        ).eq("executed", False).eq("resolved", False).eq("approval_status", "approved").eq("skip_reason", "learning_period").execute()
+    except Exception as e:
+        print(f"[resolve] Counterfactual query failed: {e}")
+        r2 = type("_R", (), {"data": []})()
+
+    for p in (r2.data or []):
+        ticker = p["ticker"]
+        entry_date = date.fromisoformat(p["scan_date"])
+        timeframe = p.get("predicted_timeframe_days") or 7
+        exit_date = entry_date + timedelta(days=timeframe)
+
+        if exit_date > today:
+            skipped += 1
+            continue
+
+        # entry_price is null for learning-period predictions — fetch scan_date close
+        entry_price = p.get("entry_price") or _fetch_close(ticker, entry_date.isoformat())
+        if not entry_price:
+            print(f"  [{ticker}] could not fetch hypothetical entry price for {entry_date} — skipping")
+            errors += 1
+            continue
+
+        print(f"  [{ticker}] counterfactual resolving — scan {entry_date}, exit target {exit_date}...")
+        exit_price = _fetch_close(ticker, exit_date.isoformat())
+        if exit_price is None:
+            print(f"  [{ticker}] could not fetch counterfactual exit price — skipping")
+            errors += 1
+            continue
+
+        actual_move = (exit_price - entry_price) / entry_price * 100
+        predicted_dir = p.get("predicted_direction", "up")
+        direction_correct = (predicted_dir == "up" and actual_move > 0) or \
+                            (predicted_dir == "down" and actual_move < 0)
+        predicted_move = p.get("predicted_move_pct") or 0
+        acc = _accuracy_score(direction_correct, predicted_move, actual_move)
+
+        resolution = {
+            "exit_price": round(exit_price, 4),
+            "exit_date": exit_date.isoformat(),
+            "exit_reason": "timeframe_expired",
+            "actual_move_pct": round(actual_move, 2),
+            "direction_correct": direction_correct,
+            "accuracy_score": acc,
+            "lessons": _lessons(ticker, "SKIP/learning-period", predicted_dir,
+                                predicted_move, actual_move, direction_correct),
+        }
+
+        ok = db.resolve_prediction(p["id"], resolution)
+        if ok:
+            resolved += 1
+            sign = "✓" if direction_correct else "✗"
+            print(f"  [{ticker}] counterfactual {sign} {actual_move:+.1f}% actual vs {predicted_move:+.1f}% predicted — score {acc}/100")
+        else:
+            errors += 1
+
     print(f"\n[resolve] Done — {resolved} resolved, {skipped} not yet due, {errors} errors")
     return {"resolved": resolved, "skipped": skipped, "errors": errors}
 

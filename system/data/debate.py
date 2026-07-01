@@ -47,7 +47,7 @@ def _is_cold_start() -> bool:
              .eq("resolved", True)
              .eq("executed", True)
              .execute())
-        return len(r.data or []) < COLD_START_PREDICTION_THRESHOLD
+        return (r.count or 0) < COLD_START_PREDICTION_THRESHOLD
     except Exception:
         return True
 
@@ -258,7 +258,7 @@ def main():
             "scan_id": scan_id,
             "ticker": ticker,
             "scan_date": scan_date,
-            "signals_fired": result.get("signals_fired", []),
+            "signals_fired": sorted(result.get("signals_fired", [])),
             "signal_categories_count": result.get("signal_categories_count"),
             "confidence_score": score,
             "confidence_components": result.get("confidence_components", {}),

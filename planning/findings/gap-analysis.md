@@ -553,6 +553,34 @@ The cloud agent environment provides `anthropic` via its runtime, but the local 
 
 ---
 
+### GAP-50: Counterfactual `resolve.py` queried `entry_price IS NOT NULL` — always returned 0 rows  ← NEW / HIGH
+
+`resolve.py` second pass queried `.not_.is_("entry_price", "null")` to find learning-period predictions. But `entry_price` is never written to Supabase for these predictions — it is only written by `execute.py:mark_executed()`, which is never called during the learning period. Every learning-period ENTER prediction has `entry_price = null` in Supabase. The counterfactual pass silently matched zero rows on every run.
+
+**Fix:** Changed query to filter on `approval_status = "approved"` + `skip_reason = "learning_period"` instead of `entry_price IS NOT NULL`. When `entry_price` is null (always for these rows), fetch the scan_date closing price via `_fetch_close(ticker, scan_date)` as the hypothetical entry before computing the move.
+
+**Resolved (2026-06-30):** `resolve.py` second pass now matches on `approval_status/skip_reason` and self-heals missing entry price from the scan_date closing price. Verified: 5 learning-period predictions found, all correctly "not yet due" (oldest scan June 24, 7-day timeframes expire July 1).
+
+---
+
+### GAP-51: `signals_fired` inserted unsorted — `signal_accuracy` view fragments identical signal combos  ← NEW / HIGH
+
+PostgreSQL arrays compare element-by-element in order. The `signal_accuracy` view groups by `signals_fired`. Claude returns signals in arbitrary narrative order — `["options_flow", "insider_purchase"]` and `["insider_purchase", "options_flow"]` are identical signals but different PostgreSQL array values, producing two separate groups each with 1 prediction. Every signal combination shows `insufficient_data = true` (threshold: 10). The calibration mechanism the entire learning period is designed to feed never produces usable output.
+
+**Fix:** One line in `debate.py` before insert: `"signals_fired": sorted(result.get("signals_fired", []))`.
+
+**Resolved (2026-06-30):** `debate.py` now sorts `signals_fired` alphabetically before writing to Supabase. All future predictions group correctly. Historical records remain unsorted — once 10+ predictions accumulate for a given combo, re-sort existing rows via: `UPDATE predictions SET signals_fired = ARRAY(SELECT unnest(signals_fired) ORDER BY 1) WHERE resolved = false;`
+
+---
+
+### GAP-52: `_is_cold_start()` uses `len(r.data)` instead of `r.count`  ← NEW / LOW
+
+`debate.py:_is_cold_start()` requests `count="exact"` from Supabase but checks `len(r.data or [])` instead of `r.count`. With a default page size of 1000 and a threshold of 30, this is harmless in practice but semantically wrong — `r.count` is the authoritative count, `len(r.data)` is the count of rows returned in this page.
+
+**Resolved (2026-06-30):** Changed to `(r.count or 0) < COLD_START_PREDICTION_THRESHOLD`.
+
+---
+
 ## Resolution Tracking
 
 | Gap | Status |
@@ -606,3 +634,6 @@ The cloud agent environment provides `anthropic` via its runtime, but the local 
 | GAP-47 approval_status "rejected" vs None | **Open — Low** — SKIP predictions get "rejected" status vs system prompt's expected null; semantic divergence |
 | GAP-48 anthropic missing from requirements.txt | **Resolved (2026-06-27)** — `anthropic>=0.30.0` added to `system/data/requirements.txt` |
 | GAP-49 Earnings cache stores EDGAR failures 24h | **Resolved (2026-06-27)** — `should_cache=False` when `fetch_ok=False`; transient errors no longer write 24h blocks |
+| GAP-50 Counterfactual resolve matched 0 rows | **Resolved (2026-06-30)** — query changed to `approval_status=approved + skip_reason=learning_period`; null entry_price fetched from scan_date close |
+| GAP-51 `signals_fired` unsorted — signal_accuracy broken | **Resolved (2026-06-30)** — `debate.py` sorts signals alphabetically before insert; historical rows can be normalized via SQL `ARRAY(SELECT unnest(...) ORDER BY 1)` |
+| GAP-52 `_is_cold_start()` uses `len(r.data)` not `r.count` | **Resolved (2026-06-30)** — changed to `(r.count or 0) < COLD_START_PREDICTION_THRESHOLD` |
