@@ -1443,3 +1443,15 @@ Running daily scan for: AMD, AXON, BA, BAH, CRM, CRWD, CSWC, GD, GE, JPM, LDOS, 
 2026-07-01 12:32:17 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22open%22%2C%22close%22%2C%22source%22%2C%22volume%22%2C%22low%22%2C%22market_cap%22%2C%22ticker%22%2C%22high%22 "HTTP/2 201 Created"
 2026-07-01 12:32:17 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
 2026-07-01 12:32:18 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [GE] done — signals=2
+  [CSWC] done — signals=1
+2026-07-01 12:32:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22open%22%2C%22close%22%2C%22source%22%2C%22volume%22%2C%22low%22%2C%22market_cap%22%2C%22ticker%22%2C%22high%22 "HTTP/2 201 Created"
+2026-07-01 12:32:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-01 12:32:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [GD] done — signals=2
+2026-07-01 12:32:51 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22open%22%2C%22close%22%2C%22source%22%2C%22volume%22%2C%22low%22%2C%22market_cap%22%2C%22ticker%22%2C%22high%22 "HTTP/2 201 Created"
+2026-07-01 12:32:51 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22open%22%2C%22close%22%2C%22source%22%2C%22volume%22%2C%22low%22%2C%22market_cap%22%2C%22ticker%22%2C%22high%22 "HTTP/2 201 Created"
+2026-07-01 12:32:51 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-01 12:32:51 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-01 12:32:51 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-01 12:32:51 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
