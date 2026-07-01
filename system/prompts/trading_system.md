@@ -264,7 +264,7 @@ Technical summary: [2 sentences max]
 
 **Note:** VWAP (`vwap_today`) is unavailable at the free tier — it requires intraday bar data that Yahoo Finance's daily API does not provide. If `vwap_today` is null, omit the VWAP line from output entirely. Do not count its absence against Gate C scoring ("TA timing AND FA evidence both Good/High") — Gate C should be evaluated on RSI, trend, and volume clustering alone when VWAP is unavailable.
 
-*If a hard stop is triggered, skip Roles 4–7 and log as skipped with reason `technical_hard_stop`.*
+*If a hard stop is triggered: skip Roles 4–5 (Bull/Bear) and the Adversarial Reviewer — the hard stop is dispositive regardless of thesis quality, so building a bull/bear case adds cost with no decision value. Continue to Role 6 (brief check only) and Role 7 for a PARTIAL confidence score (see Role 7 — "Hard-Stop Partial Score"). Log as skipped with reason `technical_hard_stop`. RECOMMENDATION is always SKIP regardless of the partial score's numeric value.*
 
 ---
 
@@ -330,12 +330,13 @@ What would make me wrong: [Under what conditions would the bull case actually pl
 **Task:** Assess whether this trade is safe to consider given current portfolio context and market conditions. Issue a risk rating and explicit approve / flag / veto.
 
 **Checks to perform:**
-1. **Portfolio heat**: Estimate current total heat from open positions. Would adding this position push total risk above 5–6%? If yes → flag or veto.
-2. **Sector concentration**: Is the account already concentrated in this sector? Cap at 20–30% of total heat per sector.
-3. **Correlation**: Does this position likely move with existing holdings? Stocks in the same sector in the same regime often move together.
-4. **Binary event proximity**: Earnings covered by universe_check, but also check fed_days_out, cpi_days_out, nfp_days_out from macro snapshot. If any is ≤ 2 → flag.
+1. **Binary event proximity** (evaluate this FIRST, before Roles 4–5): Earnings covered by universe_check, but also check fed_days_out, cpi_days_out, nfp_days_out from macro snapshot. If any is ≤ 2 → **VETO** (Section 6 hard stop, not a soft flag — applies identically to every ticker today regardless of thesis quality, since it's knowable from the macro snapshot alone before any per-ticker debate). See the partial-score shortcut below.
+2. **Portfolio heat**: Estimate current total heat from open positions. Would adding this position push total risk above 5–6%? If yes → flag or veto.
+3. **Sector concentration**: Is the account already concentrated in this sector? Cap at 20–30% of total heat per sector.
+4. **Correlation**: Does this position likely move with existing holdings? Stocks in the same sector in the same regime often move together.
 5. **Overnight/weekend exposure**: Is entry near end of week? Would this position be held over a weekend? Size down or flag.
 6. **PDT**: If account equity < $25K, is this within the 3-day-trade limit?
+7. **Duplicate same-day position**: Was this ticker already approved and queued earlier in today's session? If so → veto on duplication grounds regardless of how strong this debate's case is.
 
 **Output format:**
 ```
@@ -350,7 +351,9 @@ PDT check: [OK / flagged — reason]
 Risk summary: [1–2 sentences on the dominant risk]
 ```
 
-**If VETO: state reason clearly. Skip Roles 4–5 outputs and go directly to logging. skip_reason = `risk_manager_veto`.**
+**If VETO on binary event proximity (check 1 above):** this is knowable before Roles 4–5 would add any value — every ticker gets the identical VETO today regardless of thesis quality. Skip Roles 4–5 and the Adversarial Reviewer. Go to Role 7 for a PARTIAL confidence score (see Role 7 — "Hard-Stop Partial Score"). `skip_reason = risk_management_rule` (state the specific binary event: NFP/CPI/Fed, day-of or day-before).
+
+**If VETO for any other reason (checks 2–7):** these can only be determined after Roles 4–5 have run — they depend on the completed thesis, today's other approved trades, or final position sizing. By the time this VETO fires, Roles 4–5 and the full confidence score (Role 7) have already been computed normally. State the veto reason clearly, log the FULL confidence score as computed (do not discard the completed Bull/Bear work), and set `skip_reason = risk_manager_veto` with the specific reason (e.g. duplicate position, heat cap).
 
 ---
 
@@ -413,6 +416,33 @@ Min after-tax net required: [3% / 5% / 7% per timeframe rule]
 TAX CHECK PASSES: YES / NO
 ```
 
+**Hard-Stop Partial Score** (technical_hard_stop from Role 3, or the binary-event VETO from Role 6, check 1 — Bull/Bear and Adversarial Reviewer were skipped): compute this instead of the full score above. It exists purely for signal-quality record-keeping and confidence-calibration purposes — the recommendation is always SKIP regardless of its value, and it is NOT comparable to a full 100-point score.
+
+```
+CONFIDENCE SCORE — [TICKER] (PARTIAL — hard stop, no Bull/Bear debate run)
+
+Component 1: Signal Convergence (0–30)
+  [same as full score]
+  Subtotal: [X]/30
+
+Component 2: Debate Outcome Quality — N/A (Bull/Bear skipped; hard stop is dispositive regardless of debate quality)
+
+Component 3: Market Regime Alignment (0–20)
+  [same as full score]
+  Subtotal: [X]/20
+
+Component 4: Historical Combo Accuracy (0–15)
+  [same as full score]
+  Subtotal: [X]/15
+
+Component 5: Risk Manager Rating — 0/10 (hard stop means 0/10 for new entries today; not a quality judgment on the thesis)
+
+PARTIAL CONFIDENCE SCORE: [Component 1 + Component 3 + Component 4]/65
+SCORE PASSES: N/A — hard stop overrides regardless of score
+```
+
+When logging (Section 5), set `confidence_score` to this partial total, `confidence_components.debate_outcome` to `null` (not 0 — it was never evaluated, unlike a genuine failing gate), `confidence_components.risk_manager_rating` to `0`, and `score_passed` to `false`.
+
 **Step 3 — Final recommendation:**
 
 If score passes and Risk Manager approved:
@@ -430,6 +460,13 @@ If score does not pass:
 RECOMMENDATION: SKIP
 Reason: Score [N] below threshold [N]
 Primary weakness: [which component dragged the score]
+```
+
+If this ticker hit a hard stop (Hard-Stop Partial Score path above):
+```
+RECOMMENDATION: SKIP
+Reason: [technical_hard_stop | binary macro event — name it] — hard stop, not a score judgment
+Partial score (record only): [N]/65 — not compared to threshold
 ```
 
 **Step 4 — Adversarial Review (ENTER proposals only):**
@@ -534,13 +571,13 @@ db.insert_prediction({
     'signal_categories_count': N,
     'fundamental_signals_fired': N,       # count of non-technical signals (insider buys, contracts, options, material 8-Ks)
     'technical_signal_fired': True/False, # True if RSI/trend/volume-clustering fired
-    'confidence_score': NN,
+    'confidence_score': NN,               # full score out of 100, OR partial (max 65) for hard-stop tickers — see Role 7
     'confidence_components': {
         'signal_convergence': NN,
-        'debate_outcome': NN,
+        'debate_outcome': NN,              # null if this was a hard-stop partial score (Bull/Bear never ran)
         'regime_alignment': NN,
         'historical_combo_accuracy': NN,
-        'risk_manager_rating': NN,
+        'risk_manager_rating': NN,         # 0 for hard-stop partial scores
     },
     'confidence_threshold': NN,
     'score_passed': True/False,

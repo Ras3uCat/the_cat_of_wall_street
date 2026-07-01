@@ -667,6 +667,27 @@ This means every fix made to `debate.py`'s prompt (GAP-47, GAP-51, GAP-58) had *
 
 ---
 
+### GAP-61: Pre-analysis hard-stop vetoes skip confidence scoring entirely — predictions tab shows blank score/breakdown for every ticker on binary-macro-event days  ← NEW / HIGH
+
+Surfaced by Ryan noticing every 2026-07-01 prediction in the web app's predictions tab was missing score, percentage, and confidence breakdown. Root cause confirmed by query: **0/65 predictions on 2026-07-01 have a `confidence_score`** (vs. 39/39 and 5/5 on prior dates). All 65 hit the Section 6 binary-macro-event hard stop (NFP day-before) at Risk Manager, and per the existing Role 3/Role 6 shortcut instructions ("skip Roles 4–7," "skip Roles 4–5 ... go directly to logging"), Bull/Bear debate *and* Role 7's confidence-score calculation were skipped entirely — leaving `confidence_score` and `confidence_components` null.
+
+This is inconsistent with how a same-named `skip_reason` behaves elsewhere: on 2026-06-30, several predictions also carry `skip_reason: 'risk_management_rule'` but **all retain full scores** (e.g. BA scored 58/100 with a complete breakdown) — because that veto was a duplicate-same-day-position check, which can only be determined *after* the full debate + score already ran (you need the completed thesis to know it's a duplicate). The two veto types were sharing an inconsistent label and inconsistent scoring treatment.
+
+Beyond the immediate UI confusion, this meant every binary-macro-event day (NFP/CPI/Fed day-of/day-before — roughly 15–25% of trading days) produced zero confidence-calibration data across the entire watchlist, a real loss for the weekly self-improvement protocol and Component 4 historical combo accuracy.
+
+**Fix options considered:** (a) run the full 7-role debate (incl. Bull/Bear + Adversarial Reviewer) even under a known hard stop, for a complete comparable score — rejected because it would make exactly the days already tightest on the Claude Code Pro-plan session budget (binary event days block every ticker at once) the *most* expensive instead of the cheapest, directly working against [[GAP-60]]'s usage-limit concern; (b) compute a partial score from the components that don't require Bull/Bear content, at zero added cost — chosen.
+
+**Resolved (2026-07-01):** `trading_system.md` updated:
+- Role 6's checklist reordered so binary event proximity is check 1, evaluated before Roles 4–5, and reclassified from a soft "flag" to a hard **VETO** (matching Section 6's own hard-rule table, which already called it a hard stop — the checklist wording had drifted from the authoritative rule).
+- Role 6's VETO handling now explicitly splits into two paths: binary-event VETOs (pre-analysis, skip Roles 4–5 + Adversarial Reviewer, go to partial score) vs. all other VETOs — portfolio heat, sector concentration, overnight risk, PDT, duplicate same-day position (added as an explicit numbered check; previously implied but not listed) — which by construction only fire after Roles 4–5 already ran, so the full score is logged as-is.
+- Role 3's technical-hard-stop shortcut updated to match: skip Bull/Bear + Adversarial Reviewer only, not Roles 6–7.
+- New "Hard-Stop Partial Score" format added to Role 7: Components 1 (Signal Convergence), 3 (Regime Alignment), 4 (Historical Combo) computed normally; Component 2 (Debate Outcome) explicitly `null` (never evaluated, not a failing gate); Component 5 (Risk Manager Rating) explicitly `0` (definitionally, per the existing AXON precedent's "0/10 for new entries today — rule violation, not a quality judgment"). Partial total out of 65, clearly labeled as non-comparable to a full 100-point score, `score_passed` always `false`, recommendation always SKIP regardless of the number.
+- Section 5 logging spec annotated to show the partial-score field values.
+
+Every prediction should now carry a non-null score going forward, even on hard-stop days, without increasing per-session debate cost on those days (no Bull/Bear or Adversarial Reviewer added). The 65 existing 2026-07-01 rows remain null (historical; not backfilled).
+
+---
+
 ### GAP-57: `CSWC` and `GE` in watchlist have no notes — `CSWC` may not fit the thesis  ← NEW / LOW
 
 Both tickers were auto-added without entries in `watchlist.json["notes"]`. `CSWC` (Capital Southwest Corp) is a BDC/middle-market lender with no government contract or defense tech angle — signal coverage is structurally thin for this watchlist's signal stack. `GE` (GE Aerospace) fits well but was undocumented.
@@ -739,3 +760,4 @@ Both tickers were auto-added without entries in `watchlist.json["notes"]`. `CSWC
 | GAP-58 `signals_fired` vocabulary unenforced | **Resolved (2026-07-01)** — `SIGNAL_CATEGORY_NAMES` closed enum in `config.py`; prompt updated; non-canonical values filtered before insert |
 | GAP-59 `resolve.py` 65-day fetch window | **Resolved (2026-07-01)** — `db.get_close_price()` added (absolute-date lookup); `_fetch_close` tries it before the rolling-window fallback |
 | GAP-60 `scan-and-debate.sh` bypasses `debate.py`, diverged spec | **Resolved (2026-07-01)** — inline prompt corrected (approval_status, signals_fired vocabulary, learning_period skip_reason); added bounded retry + dedup for session-limit resilience. Dual-implementation drift risk accepted; API switch not economical at current account size (confirmed with Ryan) |
+| GAP-61 Hard-stop vetoes skip confidence scoring — null score on binary-macro-event days | **Resolved (2026-07-01)** — added zero-added-cost "Hard-Stop Partial Score" (Components 1/3/4, Component 2 null, Component 5 forced 0) to Role 7; Role 6 VETO handling split into pre-analysis (binary event, partial score) vs. post-analysis (full score retained) paths |
