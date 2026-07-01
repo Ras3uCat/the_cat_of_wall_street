@@ -39,6 +39,21 @@ ACCOUNT_STATE_STALENESS_MINUTES = 90  # max age of account_state.json before rai
 SIGNAL_CONVERGENCE_THRESHOLD = 2    # minimum signal categories required to proceed to debate
 INSIDER_MIN_TRADE_VALUE = 50_000    # minimum open-market purchase size ($) to qualify as signal
 
+# Canonical signal names for the `signals_fired` field on prediction records.
+# The debate prompt restricts Claude to this closed vocabulary — without it, freeform
+# per-debate naming fragments the signal_accuracy view and historical combo lookups
+# (GAP-58: identical signals logged under different strings never accumulate enough
+# observations to leave insufficient_data status).
+SIGNAL_CATEGORY_NAMES = [
+    "insider_trades",
+    "gov_contracts",
+    "options_flow",
+    "sec_filings",
+    "congress_trades",
+    "short_interest",
+    "technicals",
+]
+
 # Options signal thresholds
 OPTIONS_UNUSUAL_VOLUME_RATIO = 3.0  # volume/OI ratio to flag unusual activity
 OPTIONS_TOP_GAMMA_LEVELS = 5        # how many gamma levels to return

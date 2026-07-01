@@ -44,6 +44,8 @@
     "JPM": "Financials \u2014 C-suite buys are rare but very high conviction when they happen",
     "UNH": "Healthcare \u2014 large Medicare/Medicaid gov contracts; consistent insider buying; elevated regulatory risk period",
     "CRM": "Enterprise SaaS \u2014 active C-suite insider history; weaker gov contract angle than NOW",
-    "SNOW": "Data cloud \u2014 verify insider direction before trading (insiders may be selling not buying)"
+    "SNOW": "Data cloud \u2014 verify insider direction before trading (insiders may be selling not buying)",
+    "CSWC": "BDC/middle-market lender \u2014 no gov contract or defense angle; fits only on high-conviction C-suite insider buys. Signal coverage is thin. Review quarterly whether it belongs on this watchlist.",
+    "GE": "GE Aerospace \u2014 frequent DoD engine and propulsion contracts; benefits from defense procurement cycle alongside LMT/RTX/NOC"
   }
 }

@@ -57,10 +57,20 @@ def show_pending(filter_date: str | None = None) -> list[dict]:
         scan_date = order.get("scan_date", "?")
         move_pct = order.get("predicted_move_pct", "?")
         tf_days = order.get("predicted_timeframe_days", "?")
+        signals = order.get("signals_fired") or []
 
         print(f"\n[{i}] {direction} {ticker}")
         print(f"    ID:            {order['id']}")
         print(f"    Scan date:     {scan_date}")
+        try:
+            days_old = (date.today() - date.fromisoformat(scan_date)).days
+            if days_old >= 1:
+                stale_msg = f"    ⚠ STALE ({days_old}d old)"
+                if "options_flow" in signals:
+                    stale_msg += " — options flow expired (4h TTL), re-check before executing"
+                print(stale_msg)
+        except Exception:
+            pass
         print(f"    Confidence:    {score}/100")
         print(f"    Position size: {size}% of equity")
         print(f"    Target:        +{move_pct}% in {tf_days} days")
@@ -93,12 +103,12 @@ if __name__ == "__main__":
     parser.add_argument("--date", default=None, help="Filter to a specific scan date (YYYY-MM-DD)")
     parser.add_argument("--mark-executed", nargs=3, metavar=("PRED_ID", "FILL_PRICE", "SIZE_PCT"),
                         help="Mark a prediction as executed with fill price and position size")
-    parser.add_argument("--all-dates", action="store_true", help="Show pending orders from all dates")
+    parser.add_argument("--all-dates", action="store_true", help="(Deprecated — now the default. Use --date to filter to a specific scan date.)")
     args = parser.parse_args()
 
     if args.mark_executed:
         pred_id, fill_price, size_pct = args.mark_executed
         mark_executed(pred_id, float(fill_price), float(size_pct))
     else:
-        filter_date = None if args.all_dates else (args.date or date.today().isoformat())
+        filter_date = args.date  # None = show all pending; --date filters to a specific scan date
         show_pending(filter_date=filter_date)

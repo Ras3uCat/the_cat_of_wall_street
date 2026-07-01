@@ -256,11 +256,13 @@ Hard stops triggered: None / [list]
 Entry timing: Good / Neutral / Poor
 RSI: [value] — [oversold/neutral/overbought]
 Trend: [uptrend/downtrend/neutral] (price vs SMA20 vs SMA50)
-VWAP: [price vs VWAP — above/below/at]
+VWAP: [price vs VWAP — above/below/at]  ← omit this line if vwap_today is null
 Volume clustering: [detected/not detected] — [implication]
 Best entry window today: [9:45–10:30 AM / 3:00–3:45 PM / avoid today]
 Technical summary: [2 sentences max]
 ```
+
+**Note:** VWAP (`vwap_today`) is unavailable at the free tier — it requires intraday bar data that Yahoo Finance's daily API does not provide. If `vwap_today` is null, omit the VWAP line from output entirely. Do not count its absence against Gate C scoring ("TA timing AND FA evidence both Good/High") — Gate C should be evaluated on RSI, trend, and volume clustering alone when VWAP is unavailable.
 
 *If a hard stop is triggered, skip Roles 4–7 and log as skipped with reason `technical_hard_stop`.*
 

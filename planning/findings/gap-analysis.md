@@ -1,7 +1,7 @@
 # Gap Analysis — AI Trading System Strategy
 
 **Source:** Review of `ai-trading-system-strategy.md`, June 2026  
-**Last updated:** 2026-06-27 — GAP-43–49 added and resolved; root cause of Yahoo rate-limiting identified (Chrome UA blocked; short UA works); all signals now functional  
+**Last updated:** 2026-07-01 — GAP-58/59 added and resolved (signals_fired vocabulary enforcement; resolve.py's rolling-window entry-price fetch replaced with absolute-date lookup)  
 **Status:** Active — gaps being addressed in strategy doc updates
 
 Each gap below links to a future `01_active/` feature or is resolved in the strategy doc.
@@ -581,6 +581,74 @@ PostgreSQL arrays compare element-by-element in order. The `signal_accuracy` vie
 
 ---
 
+### GAP-53: Push notifications suppressed during learning period — contradicts system prompt  ← NEW / MEDIUM
+
+`debate.py` set `if in_learning_period: print("push suppressed")` instead of calling `_send_push()`. The system prompt Section 5 Step 3 says "After logging any ENTER proposal (regardless of learning period), call the notify endpoint." The learning period existed to observe what the system would have traded — suppressing notifications defeated the only real-time feedback loop during those 60 days.
+
+**Resolved (2026-07-01):** `_send_push()` now called for all ENTER+score_passed decisions regardless of learning period. Rationale prefixed with `[LEARNING]` so push notifications are visually distinct from live execution alerts.
+
+---
+
+### GAP-54: `resolve.py` uses vanilla yfinance — fails in cloud execution environment  ← NEW / MEDIUM
+
+`resolve.py:_fetch_close()` used `yf.Ticker(ticker).history()` directly — the same crumb-based approach that fails when `fc.yahoo.com` is blocked (confirmed environment in cloud runs, per GAP-44). The 6 PM CT resolution cron runs in the cloud, meaning closing prices consistently fail to fetch and predictions accumulate without resolution. The direct Yahoo chart API fix (GAP-44) in `fetch_market_data.py` was not applied here.
+
+**Resolved (2026-07-01):** `_fetch_close()` rewritten to call `fetch_market_data.fetch(ticker, period_days=65)` and look up the target date in the returned `price_history` list. Handles weekends/holidays by finding the closest trading day on or before the target. Removed `import yfinance as yf`.
+
+---
+
+### GAP-55: Migration 005 not applied — `options_flow_history`, `short_interest_history`, `macro_history` tables do not exist  ← NEW / MEDIUM
+
+`005_add_market_history_tables.sql` was written (GAP-29 resolution) but never applied to Supabase. `db.upsert_options_flow()` fails silently in `fetch_options.py` (wrapped in `try/except`) — zero options flow data has ever been persisted. Same for short interest history (`fetch_market_data.py`) and macro history (`fetch_macro.py`). These tables feed the weekly self-improvement protocol.
+
+**Pending:** Apply via Supabase dashboard SQL editor, or run `db.run_migration(sql)` with `SUPABASE_ACCESS_TOKEN` set in `.env`. SQL file: `system/schemas/migrations/005_add_market_history_tables.sql`.
+
+---
+
+### GAP-56: `execute.py` default filter is today-only — misses stale pending approvals  ← NEW / LOW
+
+`show_pending()` without arguments filtered to `scan_date = today`. During the learning period, approved predictions accumulate across days. Running the script without `--all-dates` showed only today's approvals, making it unreliable as the pre-session pending-order check. The system prompt's Section 11 Step 0 Supabase query has no date filter.
+
+**Resolved (2026-07-01):** Default is now no date filter (all pending approvals shown). `--date` filters to a specific scan date. `--all-dates` deprecated (was the workaround for the old behavior).
+
+---
+
+### GAP-58: `signals_fired` has no enforced vocabulary — undermines GAP-51's fix and Component 4 scoring  ← NEW / HIGH
+
+`run_daily_scan.py` produces fixed category keys: `market_data`, `options_flow`, `insider_trades`, `gov_contracts`, `congress_trades`, `sec_filings`, `technicals`, `dark_pool`. But `debate.py`'s prompt (`debate.py:97`) shows Claude an *example* `signals_fired` array using different, more granular, freeform names: `["insider_purchase", "options_call_surge"]`. Nothing in the prompt restricts Claude to the canonical category names — the value written is whatever string the LLM narrates that debate.
+
+**Consequences:**
+- `signal_accuracy` view (`supabase_schema.sql:99`) does `group by signals_fired` on exact array equality. Two logically identical signal combos ("options_call_surge" vs "unusual_call_volume") never merge — every combo stays under the 10-observation threshold indefinitely. This is the actual root cause GAP-51 was chasing; sorting alphabetically (GAP-51's fix) only fixes *order* within one array, not *naming* across debates.
+- Component 4 (Historical Combo Accuracy) can never find a match for a `signal_combo`, because prior predictions used different literal strings for logically equivalent signals.
+- GAP-46's stale-options-flow check in `execute.py:69` does `if "options_flow" in signals` — but if Claude wrote "options_call_surge" (per its own example), that check never fires.
+
+**Fix:** In `debate.py`'s prompt, replace the free-form example with an explicit closed enum instruction restricting `signals_fired` to the canonical category names: `insider_trades`, `gov_contracts`, `options_flow`, `sec_filings`, `congress_trades`, `short_interest`, `technicals`.
+
+**Resolved (2026-07-01):** `SIGNAL_CATEGORY_NAMES` constant added to `config.py`. `debate.py`'s prompt now embeds this exact list and instructs Claude to use only these values (with an example rewritten to match). As a safety net, `debate.py:main()` filters any non-canonical values out of `signals_fired` before insert and logs them, so a non-compliant debate response can't silently corrupt the `signal_accuracy` grouping.
+
+---
+
+### GAP-59: `resolve.py` counterfactual entry-price fetch breaks for predictions with entry dates >65 days before resolution  ← NEW / MEDIUM
+
+`resolve.py:_fetch_close` (rewritten for GAP-54) calls `fetch_market_data.fetch(ticker, period_days=65)`. That function has no `end_date` parameter — `period_days` always means "last N days from **today**" (`_fetch_yahoo_chart_direct` uses Yahoo's `range={period_days}d`, anchored to now, not to an arbitrary target date). So `_fetch_close(ticker, as_of)` only succeeds if `as_of` falls within the last 65 calendar days from whenever `resolve.py` actually runs.
+
+- Main resolution pass (real trades): unaffected — `exit_date` is always close to "today" when `resolve.py` processes it.
+- Counterfactual pass (learning-period predictions, `resolve.py:159`): fetches `entry_price` for `scan_date`, which can be arbitrarily old relative to when its timeframe finally expires. Section 6 of the system prompt explicitly allows a 30–90 day after-tax-return timeframe tier, and the Bullish Debater's guide table goes up to 60 days for "multiple categories converging" trades — the highest-conviction trades. Any prediction where `scan_date` ends up more than 65 days before its `exit_date` (guaranteed for the 90-day tier) will silently fail to fetch the hypothetical entry price and never resolve.
+
+**Fix:** Add an `end_date`/epoch-range parameter to `fetch_market_data.fetch()` (Yahoo chart API supports `period1`/`period2` epoch params as an alternative to `range`), or have `resolve.py` query `db.get_price_history()` directly with a date filter for old-date lookups instead of routing through the "last N days from now" wrapper.
+
+**Resolved (2026-07-01):** Added `db.get_close_price(ticker, as_of)` — an absolute-date query against the persisted `price_history` table (`date <= as_of`, descending, limit 1), not bound to a rolling window. `resolve.py:_fetch_close` now tries this first for any date, falling back to `fetch_market_data.fetch()` only for dates not yet persisted (e.g. today's close before any other fetch has written it). Works for arbitrarily old `scan_date`/`exit_date` values as long as a price_history row was recorded for that period.
+
+---
+
+### GAP-57: `CSWC` and `GE` in watchlist have no notes — `CSWC` may not fit the thesis  ← NEW / LOW
+
+Both tickers were auto-added without entries in `watchlist.json["notes"]`. `CSWC` (Capital Southwest Corp) is a BDC/middle-market lender with no government contract or defense tech angle — signal coverage is structurally thin for this watchlist's signal stack. `GE` (GE Aerospace) fits well but was undocumented.
+
+**Resolved (2026-07-01):** Notes added to both. CSWC flagged for quarterly fit review.
+
+---
+
 ## Resolution Tracking
 
 | Gap | Status |
@@ -613,7 +681,7 @@ PostgreSQL arrays compare element-by-element in order. The `signal_accuracy` vie
 | GAP-26 Missing retry on updates | **Resolved** — `update_prediction` and `resolve_prediction` both wrapped in `_retry()` |
 | GAP-27 Technicals cache source key | **Resolved** — `"technicals": 600` added to `CACHE_TTL`; `technicals.py` updated to use `"technicals"` key |
 | GAP-28 period_days not in cache key | **Resolved** — cache key now includes `period_days` as `{ticker}_{period_days}d` |
-| GAP-29 upsert_options_flow missing | **Resolved** — function exists in `db.py` (lines 283–303); migration `005_add_market_history_tables.sql` covers the table. Apply migration to activate. |
+| GAP-29 upsert_options_flow missing | **Resolved** — function exists in `db.py`; migration 005 applied; `short_interest_history`, `options_flow_history`, `macro_history` tables confirmed live in Supabase |
 | GAP-30 insert_prediction drops 3 fields | **Resolved** — `approval_status`, `equity_at_entry`, `debate_narrative` added directly to `insert_prediction` row dict |
 | GAP-31 Learning period too short | **Resolved** — Extended to 2026-08-20 (60 days); execution resumes 2026-08-21 |
 | GAP-32 Drawdown re-enable undefined | **Resolved** — `logs/trading_halt.json` flag; `account.py` halt/resume/check functions; session startup checks halt first |
@@ -626,14 +694,21 @@ PostgreSQL arrays compare element-by-element in order. The `signal_accuracy` vie
 | GAP-39 cold_start hardcoded True | **Resolved** — `_is_cold_start()` queries resolved prediction count; drops cold_start after 30 resolved trades |
 | GAP-40 DEBATE_MODEL magic string | **Resolved** — `DEBATE_MODEL` constant in `config.py`; imported by `debate.py` |
 | GAP-41 Yahoo rate-limiting worker count | **Resolved** — `_SCAN_WORKERS` reduced 4→3; combined with GAP-36, worst-case concurrent Yahoo requests drop ~62% |
-| GAP-42 VWAP unavailable at free tier | **Open — Low** — agents handle null gracefully; system prompt note recommended in next revision |
+| GAP-42 VWAP unavailable at free tier | **Resolved (2026-07-01)** — Note added to Section 3 Technical Analyst: if `vwap_today` is null, omit VWAP line and do not penalize Gate C scoring |
 | GAP-43 Earnings calendar blocks all tickers | **Resolved (2026-06-27)** — `_last_earnings_8k` now returns `(date, fetch_ok)` tuple; `fetch_error` results not cached; next call retries fresh |
 | GAP-44 fetch_sector_rotation uses yf.download | **Resolved (2026-06-27)** — rewritten to use direct Yahoo chart API per-ETF; UA changed to short form (Chrome UA was rate-limited); 11/11 ETFs now fetched |
 | GAP-45 get_price_history returns oldest rows | **Resolved (2026-06-27)** — `order("date", desc=True)` + reverse; most recent N rows returned |
-| GAP-46 No staleness warning in execute.py | **Open — Low** — pending orders show scan_date but no age warning; options flow signal decays in 4h |
-| GAP-47 approval_status "rejected" vs None | **Open — Low** — SKIP predictions get "rejected" status vs system prompt's expected null; semantic divergence |
+| GAP-46 No staleness warning in execute.py | **Resolved (2026-07-01)** — `show_pending()` now prints `⚠ STALE (Nd old)` for orders > 0 days; adds options flow TTL warning when signal is present |
+| GAP-47 approval_status "rejected" vs None | **Resolved (2026-07-01)** — SKIP predictions now set `approval_status = None`; `skip_reason` carries the specific reason |
 | GAP-48 anthropic missing from requirements.txt | **Resolved (2026-06-27)** — `anthropic>=0.30.0` added to `system/data/requirements.txt` |
 | GAP-49 Earnings cache stores EDGAR failures 24h | **Resolved (2026-06-27)** — `should_cache=False` when `fetch_ok=False`; transient errors no longer write 24h blocks |
 | GAP-50 Counterfactual resolve matched 0 rows | **Resolved (2026-06-30)** — query changed to `approval_status=approved + skip_reason=learning_period`; null entry_price fetched from scan_date close |
-| GAP-51 `signals_fired` unsorted — signal_accuracy broken | **Resolved (2026-06-30)** — `debate.py` sorts signals alphabetically before insert; historical rows can be normalized via SQL `ARRAY(SELECT unnest(...) ORDER BY 1)` |
+| GAP-51 `signals_fired` unsorted — signal_accuracy broken | **Resolved (2026-07-01)** — `debate.py` sorts signals alphabetically before insert; all existing rows normalized via `UPDATE predictions SET signals_fired = ARRAY(SELECT unnest(signals_fired) ORDER BY 1);` — confirmed applied |
 | GAP-52 `_is_cold_start()` uses `len(r.data)` not `r.count` | **Resolved (2026-06-30)** — changed to `(r.count or 0) < COLD_START_PREDICTION_THRESHOLD` |
+| GAP-53 Push notifications suppressed during learning period | **Resolved (2026-07-01)** — `debate.py` now calls `_send_push()` for all ENTER+score_passed regardless of learning period; rationale prefixed with `[LEARNING]` so notifications are distinguishable |
+| GAP-54 `resolve.py` uses vanilla yfinance — fails in cloud | **Resolved (2026-07-01)** — `_fetch_close()` ported to use `fetch_market_data.fetch(period_days=65)` and scan the returned `price_history` for the target date; handles weekends/holidays naturally |
+| GAP-55 Migration 005 not applied — history tables missing | **Resolved (2026-07-01)** — confirmed all three tables (`short_interest_history`, `options_flow_history`, `macro_history`) and indexes exist in Supabase; migration was already applied |
+| GAP-56 `execute.py` default filter today-only — misses stale pending | **Resolved (2026-07-01)** — default is now no date filter (show all pending); `--date` filters to a specific scan date; `--all-dates` deprecated |
+| GAP-57 `CSWC` and `GE` missing watchlist notes | **Resolved (2026-07-01)** — notes added; CSWC flagged for quarterly fit review (BDC — thin signal coverage) |
+| GAP-58 `signals_fired` vocabulary unenforced | **Resolved (2026-07-01)** — `SIGNAL_CATEGORY_NAMES` closed enum in `config.py`; prompt updated; non-canonical values filtered before insert |
+| GAP-59 `resolve.py` 65-day fetch window | **Resolved (2026-07-01)** — `db.get_close_price()` added (absolute-date lookup); `_fetch_close` tries it before the rolling-window fallback |

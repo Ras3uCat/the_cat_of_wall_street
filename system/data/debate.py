@@ -21,7 +21,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import db
-from config import SIGNAL_CONVERGENCE_THRESHOLD, DEBATE_MODEL, COLD_START_PREDICTION_THRESHOLD
+from config import (
+    SIGNAL_CONVERGENCE_THRESHOLD,
+    DEBATE_MODEL,
+    COLD_START_PREDICTION_THRESHOLD,
+    SIGNAL_CATEGORY_NAMES,
+)
 
 SYSTEM_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "trading_system.md"
 LEARNING_PERIOD_END = date(2026, 8, 20)
@@ -84,7 +89,13 @@ SIGNAL DATA:
 
 Complete all 7 agent positions, then output the final decision.
 After the full debate narrative, end with a JSON block in this exact format (no trailing text after it).
-Keep the JSON compact — the narrative above IS the debate record; do not duplicate it here:
+Keep the JSON compact — the narrative above IS the debate record; do not duplicate it here.
+
+`signals_fired` MUST contain only values from this exact closed vocabulary — do not invent
+more granular or descriptive names (e.g. write "options_flow", never "options_call_surge" or
+"unusual_call_volume"). Historical accuracy lookups group on this field by exact match;
+any other string permanently fragments that data:
+{json.dumps(SIGNAL_CATEGORY_NAMES)}
 
 ```json
 {{
@@ -94,7 +105,7 @@ Keep the JSON compact — the narrative above IS the debate record; do not dupli
   "predicted_direction": "up",
   "predicted_move_pct": 6.5,
   "predicted_timeframe_days": 7,
-  "signals_fired": ["insider_purchase", "options_call_surge"],
+  "signals_fired": ["insider_trades", "options_flow"],
   "signal_categories_count": 3,
   "confidence_components": {{
     "signal_convergence": 22,
@@ -253,12 +264,18 @@ def main():
         score_passed = result.get("score_passed", score >= threshold)
         print(f"[{ticker}] {decision} — score {score}/100 (passes: {score_passed})")
 
+        raw_signals = result.get("signals_fired", [])
+        invalid_signals = [s for s in raw_signals if s not in SIGNAL_CATEGORY_NAMES]
+        if invalid_signals:
+            print(f"[{ticker}] Dropping non-canonical signals_fired values: {invalid_signals}")
+        signals_fired = sorted(s for s in raw_signals if s in SIGNAL_CATEGORY_NAMES)
+
         prediction = {
             "id": f"pred_{scan_date.replace('-', '')}_{seq:03d}",
             "scan_id": scan_id,
             "ticker": ticker,
             "scan_date": scan_date,
-            "signals_fired": sorted(result.get("signals_fired", [])),
+            "signals_fired": signals_fired,
             "signal_categories_count": result.get("signal_categories_count"),
             "confidence_score": score,
             "confidence_components": result.get("confidence_components", {}),
@@ -284,7 +301,7 @@ def main():
             if in_learning_period:
                 prediction["skip_reason"] = "learning_period"
         else:
-            prediction["approval_status"] = "rejected"
+            prediction["approval_status"] = None
             prediction["skip_reason"] = result.get("rationale", "score below threshold")
 
         ok = db.insert_prediction(prediction)
@@ -292,17 +309,18 @@ def main():
         print(f"[{ticker}] Supabase {status}")
 
         if decision == "ENTER" and score_passed:
+            rationale = result.get("rationale", "")
             if in_learning_period:
-                print(f"[{ticker}] Learning period — no execution, push suppressed")
-            else:
-                _send_push(
-                    ticker=ticker,
-                    score=score,
-                    direction=result.get("predicted_direction", "up"),
-                    move_pct=result.get("predicted_move_pct", 0.0),
-                    rationale=result.get("rationale", ""),
-                    session_type=session_type,
-                )
+                print(f"[{ticker}] Learning period — logged as approved, execution resumes 2026-08-21")
+                rationale = f"[LEARNING] {rationale}"
+            _send_push(
+                ticker=ticker,
+                score=score,
+                direction=result.get("predicted_direction", "up"),
+                move_pct=result.get("predicted_move_pct", 0.0),
+                rationale=rationale,
+                session_type=session_type,
+            )
 
         outcomes.append(f"{ticker} {decision} ({score}/100)")
 

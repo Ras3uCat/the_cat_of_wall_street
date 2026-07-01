@@ -15,24 +15,43 @@ sys.path.insert(0, str(Path(__file__).parent))
 from dotenv import load_dotenv
 load_dotenv()
 
-import yfinance as yf
 import db
+import fetch_market_data
 
 
 def _fetch_close(ticker: str, as_of: str) -> float | None:
-    """Fetch the closing price on or just before as_of date."""
+    """
+    Fetch the closing price on or just before as_of date.
+
+    Tries Supabase's persisted price_history first — an absolute-date lookup that
+    works for arbitrarily old dates once recorded. fetch_market_data.fetch() is a
+    rolling "last N days from now" window (Yahoo's range= param has no end-date
+    anchor), so it alone can't resolve entry prices for dates older than period_days
+    relative to *today* — which breaks on any prediction whose timeframe pushes
+    scan_date past that window by the time it expires (GAP-59). It remains as the
+    fallback for dates not yet persisted (e.g. today's close, before any other
+    fetch has written it to Supabase).
+    """
+    price = db.get_close_price(ticker, as_of)
+    if price is not None:
+        return price
+
     try:
-        end = date.fromisoformat(as_of) + timedelta(days=1)
-        hist = yf.Ticker(ticker).history(start=as_of, end=end.isoformat(), auto_adjust=True)
-        if hist.empty:
-            # Try one day earlier (holiday / weekend)
-            start = date.fromisoformat(as_of) - timedelta(days=3)
-            hist = yf.Ticker(ticker).history(start=start.isoformat(), end=end.isoformat(), auto_adjust=True)
-        if hist.empty:
+        data = fetch_market_data.fetch(ticker, period_days=65)
+        if data.get("status") != "ok":
+            print(f"  [fetch] {ticker} status={data.get('status')}: {data.get('error', '')}")
             return None
-        return float(hist["Close"].iloc[-1])
+        history = data.get("price_history") or []
+        target = date.fromisoformat(as_of)
+        # Find closest trading day on or before target (handles weekends/holidays)
+        candidates = [(date.fromisoformat(row["date"]), row["close"])
+                      for row in history if row.get("close")]
+        before = [(d, c) for d, c in candidates if d <= target]
+        if not before:
+            return None
+        return float(max(before, key=lambda x: x[0])[1])
     except Exception as e:
-        print(f"  [yfinance] price fetch failed for {ticker} on {as_of}: {e}")
+        print(f"  [fetch_market_data] price fetch failed for {ticker} on {as_of}: {e}")
         return None
 
 

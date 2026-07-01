@@ -362,6 +362,34 @@ def upsert_price_history(ticker: str, rows: list[dict], market_cap: int, source:
         return False
 
 
+def get_close_price(ticker: str, as_of: str) -> float | None:
+    """
+    Fetch the closing price on or just before as_of date from persisted price_history.
+    Unlike fetch_market_data.fetch() (a rolling "last N days from now" window), this
+    queries by absolute date — works for arbitrarily old dates once a row for that
+    period has been upserted. Returns None if Supabase is unavailable or no row
+    exists on/before as_of.
+    """
+    client = get_client()
+    if not client:
+        return None
+    try:
+        result = (
+            client.table("price_history")
+            .select("close")
+            .eq("ticker", ticker.upper())
+            .lte("date", as_of)
+            .order("date", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = result.data or []
+        return float(rows[0]["close"]) if rows and rows[0].get("close") is not None else None
+    except Exception as e:
+        print(f"[db] get_close_price failed: {e}")
+        return None
+
+
 def get_price_history(ticker: str, days: int = 35) -> list[dict]:
     """
     Fetch the most recent `days` rows of OHLCV data for a ticker from Supabase.
