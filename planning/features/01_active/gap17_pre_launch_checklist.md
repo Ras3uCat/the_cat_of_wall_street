@@ -1,10 +1,10 @@
 # GAP-17: Pre-Launch Checklist — Live Trading Activation
 
-**Learning period ends:** 2026-06-29 (Monday)  
+**Learning period ends:** 2026-08-20 (Thursday)  
 **Status:** Open — must complete before first live execution
 
-The system transitions from `skip_reason='learning_period'` to full AUTO-EXECUTE MODE on 2026-06-29.
-This checklist must be completed in a local session on or before Sunday 2026-06-28.
+The system transitions from `skip_reason='learning_period'` to full AUTO-EXECUTE MODE on 2026-08-21.
+This checklist must be completed in a local session on or before Wednesday 2026-08-20.
 
 ---
 
@@ -64,9 +64,9 @@ All items must pass before the first live trade is executed.
 
 ## Activation Step
 
-Once all boxes are checked, in the first local session on or after 2026-06-29:
+Once all boxes are checked, in the first local session on or after 2026-08-21:
 
-1. Confirm `today >= '2026-06-29'`
+1. Confirm `today >= '2026-08-21'`
 2. Refresh account state via Robinhood MCP
 3. Check Supabase for any `approval_status='approved', executed=false` predictions from the learning period — execute the best one if still thesis-valid
 4. Run normal session startup per system prompt Section 1 — learning period check will now pass, AUTO-EXECUTE is live
