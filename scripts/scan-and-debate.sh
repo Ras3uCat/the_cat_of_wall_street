@@ -11,6 +11,15 @@ CLAUDE="/home/ryan/.nvm/versions/node/v20.19.6/bin/claude"
 PYTHON="$PROJECT/.venv/bin/python"
 TODAY=$(date +%Y-%m-%d)
 SCAN_FILE="$PROJECT/logs/predictions/scan_${TODAY}_${SESSION_TYPE}.json"
+SCAN_ID="scan_${TODAY}_${SESSION_TYPE}"
+
+# Retry knobs — a Claude Code subscription session-limit hit ("You've hit your session
+# limit · resets Npm") is the main failure mode this guards against (GAP-60). Limits
+# reset on the order of tens of minutes to a few hours, so we retry a bounded number of
+# times with a long enough gap to plausibly clear, then give up and let systemd's
+# OnFailure= push notification (already confirmed working) alert Ryan for manual follow-up.
+MAX_ATTEMPTS=3
+RETRY_DELAY_SECONDS=1200  # 20 min
 
 echo "[$(date)] Starting $SESSION_TYPE scan..."
 cd "$PROJECT"
@@ -21,10 +30,17 @@ cd "$PROJECT"
 # Step 2: debate via Claude Code (non-interactive)
 echo "[$(date)] Scan complete. Starting debate..."
 
-"$CLAUDE" -p \
-  --dangerously-skip-permissions \
-  --no-session-persistence \
-  "This is an automated post-scan debate session for the $SESSION_TYPE scan.
+# Single source of truth for the signals_fired enum lives in config.py (GAP-58) —
+# read it here instead of hardcoding a second copy that can drift out of sync.
+SIGNAL_NAMES=$("$PYTHON" -c "import sys; sys.path.insert(0,'system/data'); from config import SIGNAL_CATEGORY_NAMES; import json; print(json.dumps(SIGNAL_CATEGORY_NAMES))")
+
+DEBATE_PROMPT="This is an automated post-scan debate session for the $SESSION_TYPE scan.
+
+This may be a retry after an earlier attempt today failed partway through (e.g. a Claude
+Code session-limit cutoff). Before debating, query Supabase for predictions where
+scan_id='$SCAN_ID' that are already logged, and skip re-debating those tickers — only run
+the debate for proceed_to_debate=true tickers not already present under this scan_id. This
+prevents duplicate prediction rows from a retried run.
 
 The data scan has just completed. The scan packet is at:
 $SCAN_FILE
@@ -35,7 +51,16 @@ Your tasks:
 2. Read the scan packet at the path above
 3. Run the full 7-agent debate for every ticker where proceed_to_debate=true
 4. Log all predictions to Supabase per Section 5 with these REQUIRED fields:
-   - approval_status: set to 'approved' for ENTER decisions, 'rejected' for SKIP decisions
+   - approval_status: set to 'approved' for ENTER decisions; for SKIP decisions set it to
+     null (NOT the string 'rejected' — null means 'auto-skipped, no human review', which is
+     what actually happened; 'rejected' implies a human vetoed it, which is misleading and
+     also breaks any downstream query that treats these as distinct states)
+   - signals_fired: values MUST come only from this exact closed vocabulary — do not invent
+     more granular or descriptive names (e.g. write \"options_flow\", never \"options_call_surge\"
+     or \"unusual_call_volume\"). Historical accuracy lookups group on this field by exact
+     match; any other string permanently fragments that data:
+     $SIGNAL_NAMES
+     Sort the array alphabetically before writing it.
    - debate_narrative: the full reasoning from the 7-agent debate
 5. Send push notifications for any ENTER decisions
 6. Update outcome_summary in the scan record in Supabase
@@ -55,7 +80,28 @@ Your tasks:
    Read the existing file first, append to the array, then write back.
    Create the file with an empty array [] if it doesn't exist yet.
 
-Learning period: if today is before 2026-08-21, set skip_reason='learning_period' on all predictions but still log them and send notifications.
+Learning period: if today is before 2026-08-21, this blocks EXECUTION only, not the debate
+outcome. For a ticker that would otherwise be an approved ENTER (score passed, Risk Manager
+approved, no hard-rule veto), set approval_status='approved' and skip_reason='learning_period'
+— still log it and still send the push notification (prefix the rationale with '[LEARNING]').
+For every other SKIP (failed confidence threshold, Risk Manager veto, technical hard stop,
+etc.), use the SPECIFIC reason for that skip (e.g. 'risk_management_rule', 'technical_hard_stop',
+'score below threshold') — do NOT overwrite it with 'learning_period'; that field must reflect
+why the debate actually rejected the trade, independent of whether execution is currently
+allowed.
 No Robinhood MCP — this is data+debate only, no trade execution."
 
-echo "[$(date)] Debate session complete."
+attempt=1
+while true; do
+  if "$CLAUDE" -p --dangerously-skip-permissions --no-session-persistence "$DEBATE_PROMPT"; then
+    echo "[$(date)] Debate session complete (attempt $attempt)."
+    break
+  fi
+  if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+    echo "[$(date)] Debate failed after $attempt attempt(s) — giving up. systemd OnFailure= will notify Ryan."
+    exit 1
+  fi
+  echo "[$(date)] Debate attempt $attempt failed (likely session limit or transient error) — retrying in ${RETRY_DELAY_SECONDS}s..."
+  sleep "$RETRY_DELAY_SECONDS"
+  attempt=$((attempt + 1))
+done

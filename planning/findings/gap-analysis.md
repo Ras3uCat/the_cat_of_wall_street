@@ -641,6 +641,32 @@ PostgreSQL arrays compare element-by-element in order. The `signal_accuracy` vie
 
 ---
 
+### GAP-60: Production automation bypasses `debate.py` entirely — `scripts/scan-and-debate.sh` runs a second, divergent debate spec via the Claude Code CLI  ← NEW / CRITICAL
+
+Discovered while investigating a mid-session usage-limit cutoff on 2026-07-01. The actual scheduled automation is **not** GitHub Actions (`.github/workflows/daily-scan.yml.disabled` — disabled) and does **not** call `system/data/debate.py`. It's `systemd --user` timers (`~/.config/systemd/user/catws-scan-*.timer`, confirmed `Linger=yes` so they run without an active login session) invoking `scripts/scan-and-debate.sh`, which runs the Python scan step and then shells out to the interactive Claude Code CLI in headless mode:
+
+```
+"$CLAUDE" -p --dangerously-skip-permissions --no-session-persistence "<inline prompt>"
+```
+
+This means every fix made to `debate.py`'s prompt (GAP-47, GAP-51, GAP-58) had **zero effect on production** — the real prompt is the inline string in `scan-and-debate.sh`, a second, independently-drifting spec. Confirmed divergences found in the 2026-07-01 pre-market/midday logs (43 real predictions):
+- `approval_status` was hardcoded to `'rejected'` for SKIP decisions in the shell script's inline prompt — contradicting GAP-47's fix (`None`) already applied to `debate.py` and to `trading_system.md` Section 5's own example.
+- No signal-vocabulary constraint at all — `signals_fired` was free-form with no defense against the exact fragmentation GAP-58 was written to prevent.
+- The learning-period instruction told Claude to overwrite `skip_reason='learning_period'` on **every** prediction regardless of decision, which would have destroyed the actual rejection reason (hard-rule veto vs. failed threshold vs. learning-period-blocked-execution) for every skip. In practice the live agent used its own judgment from `trading_system.md` and logged the correct specific reason (`risk_management_rule`) instead of following this literal instruction — but the shell script itself was wrong and should not rely on the model overriding bad instructions.
+
+**Separate operational finding from the same investigation:** because this runs through the Claude Code CLI under a subscription plan (not the metered Anthropic API), it shares session/usage limits with any interactive Claude Code use that day. This is confirmed as the root cause of the 2026-07-01 12:35 PM midday debate producing zero output ("You've hit your session limit · resets 1pm") — not a bug, but a real capacity constraint of running production automation on a subscription plan. Ryan has chosen to keep the CLI approach for cost reasons rather than switch to metered API billing at this account size; see the resolution below for what was aligned instead.
+
+**Resolved (2026-07-01):** `scripts/scan-and-debate.sh` updated to match the current spec:
+- `approval_status` instruction corrected to `null` for SKIP (matching GAP-47).
+- Added an explicit closed-vocabulary instruction for `signals_fired`, sourced dynamically from `config.SIGNAL_CATEGORY_NAMES` (via a `python -c` lookup at script runtime) rather than a second hardcoded copy, so the shell script and `debate.py` can't drift apart again on this specific list.
+- Learning-period instruction corrected: `skip_reason='learning_period'` now applies only to what would otherwise be an approved ENTER (execution-blocked case); every other SKIP keeps its own specific reason.
+
+**Not resolved / accepted risk:** the dual-implementation problem itself (a markdown-embedded prompt in a shell script vs. a Python script, kept in sync by hand) remains. Any future change to `trading_system.md` Section 5's logging spec must be manually mirrored into `scan-and-debate.sh`'s inline prompt, or this drift recurs. Ryan confirmed the API switch doesn't pencil out at current account size ($100 seed — even an optimistic 20%/month return is $20, well under the estimated $50–110/month API cost) and elected to stay on the Claude Code CLI subscription for now; retiring the shell-script path in favor of `debate.py` (with prompt caching enabled) remains the long-term fix if/when account size justifies metered billing.
+
+**Resolved (2026-07-01), session-limit resilience:** Added a bounded retry loop around the `claude -p` debate invocation in `scan-and-debate.sh` (`MAX_ATTEMPTS=3`, `RETRY_DELAY_SECONDS=1200`) — confirmed `TimeoutStartUSec=infinity` on the systemd oneshot services so a ~40-minute total retry window won't be killed. Also added a dedup instruction telling Claude to check Supabase for predictions already logged under the current `scan_id` before debating, so a retry after a *partial* failure (some tickers logged before the cutoff) doesn't create duplicate rows. Confirmed via `journalctl` that the 2026-07-01 midday failure already correctly triggered systemd's `OnFailure=catws-notify-failure@%n.service` push notification — that safety net was already working; retries make the failure self-heal instead of requiring Ryan to notice the alert and intervene by hand.
+
+---
+
 ### GAP-57: `CSWC` and `GE` in watchlist have no notes — `CSWC` may not fit the thesis  ← NEW / LOW
 
 Both tickers were auto-added without entries in `watchlist.json["notes"]`. `CSWC` (Capital Southwest Corp) is a BDC/middle-market lender with no government contract or defense tech angle — signal coverage is structurally thin for this watchlist's signal stack. `GE` (GE Aerospace) fits well but was undocumented.
@@ -712,3 +738,4 @@ Both tickers were auto-added without entries in `watchlist.json["notes"]`. `CSWC
 | GAP-57 `CSWC` and `GE` missing watchlist notes | **Resolved (2026-07-01)** — notes added; CSWC flagged for quarterly fit review (BDC — thin signal coverage) |
 | GAP-58 `signals_fired` vocabulary unenforced | **Resolved (2026-07-01)** — `SIGNAL_CATEGORY_NAMES` closed enum in `config.py`; prompt updated; non-canonical values filtered before insert |
 | GAP-59 `resolve.py` 65-day fetch window | **Resolved (2026-07-01)** — `db.get_close_price()` added (absolute-date lookup); `_fetch_close` tries it before the rolling-window fallback |
+| GAP-60 `scan-and-debate.sh` bypasses `debate.py`, diverged spec | **Resolved (2026-07-01)** — inline prompt corrected (approval_status, signals_fired vocabulary, learning_period skip_reason); added bounded retry + dedup for session-limit resilience. Dual-implementation drift risk accepted; API switch not economical at current account size (confirmed with Ryan) |
