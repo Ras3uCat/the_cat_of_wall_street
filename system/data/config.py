@@ -29,6 +29,9 @@ MIN_MARKET_CAP = 500_000_000 # $500M
 EARNINGS_BUFFER_DAYS = 3     # no trade within 3 days of earnings
 PDT_DAY_TRADE_LIMIT = 3      # max day trades in 5 business days (under $25K equity)
 
+# Signal staleness thresholds (trading_system.md § Signal Staleness Thresholds)
+MATERIAL_FILING_MAX_AGE_DAYS = 3  # 8-K material filing — news cycle absorbs within 1-3 days
+
 # Portfolio risk limits (referenced by account.py and Risk Manager)
 PORTFOLIO_HEAT_LIMIT_PCT = 5.5      # maximum total portfolio heat as a % of equity
 DEFAULT_STOP_LOSS_PCT = 4.0         # default per-position stop loss % when not specified

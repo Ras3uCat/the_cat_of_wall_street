@@ -18,7 +18,7 @@ import random
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -37,7 +37,12 @@ import fetch_sector_rotation
 import technicals
 import universe_check
 import db
-from config import PREDICTIONS_DIR, PROJECT_ROOT, SIGNAL_CONVERGENCE_THRESHOLD
+from config import (
+    MATERIAL_FILING_MAX_AGE_DAYS,
+    PREDICTIONS_DIR,
+    PROJECT_ROOT,
+    SIGNAL_CONVERGENCE_THRESHOLD,
+)
 
 # Reduced from 4 — double-fetch fix halved Yahoo load; 3 further reduces concurrent pressure
 _SCAN_WORKERS = 3
@@ -57,6 +62,15 @@ DARK_POOL_SIGNAL = {
     "status": "unavailable",
     "reason": "Dark pool print data requires a paid tier (e.g. Unusual Whales, Dark Pool Light). Upgrade to access this signal.",
 }
+
+
+def _parse_date(value: str | None) -> date | None:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
 
 
 def _scan_ticker(ticker: str) -> dict:
@@ -113,7 +127,12 @@ def _scan_ticker(ticker: str) -> dict:
         fundamental += 1
     if signals.get("options_flow", {}).get("options_signal_strength", "neutral") not in ("neutral", None):
         fundamental += 1
-    if signals.get("sec_filings", {}).get("material_filing_count", 0) > 0:
+    filing_cutoff = date.today() - timedelta(days=MATERIAL_FILING_MAX_AGE_DAYS)
+    fresh_material_filings = sum(
+        1 for f in signals.get("sec_filings", {}).get("filings", [])
+        if f.get("is_high_signal") and _parse_date(f.get("date")) and _parse_date(f.get("date")) >= filing_cutoff
+    )
+    if fresh_material_filings > 0:
         fundamental += 1
     if signals.get("market_data", {}).get("short_signal") in ("squeeze_setup", "covering"):
         fundamental += 1

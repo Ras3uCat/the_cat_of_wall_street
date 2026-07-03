@@ -696,6 +696,22 @@ Both tickers were auto-added without entries in `watchlist.json["notes"]`. `CSWC
 
 ---
 
+### GAP-62: No watchlist removal mechanism — only `discover.py` adds, nothing flags or prunes underperforming tickers  ← NEW / LOW
+
+`discover.py --auto-add` appends qualified candidates to `watchlist.json` automatically, but there is no counterpart that surfaces tickers for removal. The only related guidance is Section 7's discovery checklist ("is this candidate a better fit than the weakest current watchlist ticker?") — a judgment prompt applied only when a new candidate surfaces, not a standing check — and a manual note Ryan wrote on `CSWC` in `watchlist.json["notes"]` ("Review quarterly whether it belongs on this watchlist"), which is a sticky note, not a system-enforced check. See also [[GAP-21]] (mega-cap names structurally too large for gov-contract signals to fire) — same underlying gap, opposite direction.
+
+Section 8's monthly report tracks win rate by *signal combo* and *confidence band* (`signal_accuracy`, `agent_accuracy`, `confidence_score_calibration` — all Supabase views), not by *ticker*. There is no per-ticker accuracy rollup anywhere in the pipeline or the report spec.
+
+**Not urgent:** during the learning period (through 2026-08-20) there isn't enough resolved-prediction volume per ticker for a removal signal to be meaningful yet — most watchlist tickers have well under 30 resolved predictions. Revisit once each ticker has enough history to compute a trailing win rate.
+
+**Fix options considered:**
+1. Add a per-ticker rollup to the Section 8 monthly report (trailing 90-day win rate + signal-fire frequency per watchlist ticker; flag tickers below a resolved-count or accuracy floor as removal candidates) — Ryan still approves removal manually, consistent with the "no signal weights or risk parameters change without Ryan's approval" rule.
+2. A standalone `prune.py` companion to `discover.py` that queries `predictions` per watchlist ticker and prints a report only — never auto-removes, mirroring how auto-add still requires `universe_check` to pass before writing.
+
+No fix applied yet — flagged for later once sufficient prediction volume exists.
+
+---
+
 ## Resolution Tracking
 
 | Gap | Status |
@@ -761,3 +777,4 @@ Both tickers were auto-added without entries in `watchlist.json["notes"]`. `CSWC
 | GAP-59 `resolve.py` 65-day fetch window | **Resolved (2026-07-01)** — `db.get_close_price()` added (absolute-date lookup); `_fetch_close` tries it before the rolling-window fallback |
 | GAP-60 `scan-and-debate.sh` bypasses `debate.py`, diverged spec | **Resolved (2026-07-01)** — inline prompt corrected (approval_status, signals_fired vocabulary, learning_period skip_reason); added bounded retry + dedup for session-limit resilience. Dual-implementation drift risk accepted; API switch not economical at current account size (confirmed with Ryan) |
 | GAP-61 Hard-stop vetoes skip confidence scoring — null score on binary-macro-event days | **Resolved (2026-07-01)** — added zero-added-cost "Hard-Stop Partial Score" (Components 1/3/4, Component 2 null, Component 5 forced 0) to Role 7; Role 6 VETO handling split into pre-analysis (binary event, partial score) vs. post-analysis (full score retained) paths |
+| GAP-62 No watchlist removal mechanism — nothing flags underperforming tickers | **Open — Low** — revisit once tickers have enough resolved predictions (30+) for a meaningful trailing win rate; not urgent during learning period |
