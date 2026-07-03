@@ -24,6 +24,7 @@ load_dotenv()
 
 import discover_contracts
 import discover_insiders
+from config import MAX_MARKET_CAP_FOR_GOV_SIGNAL
 
 AUTO_ADD_MIN_SCORE = 2  # must have 2+ signal sources (or 1 with C-suite + large contract bonus)
 
@@ -53,6 +54,12 @@ def auto_add_qualified(candidates: list[dict], watchlist_path: str = "watchlist.
         print(f"[auto-add] Checking {ticker} (score={c['discovery_score']})...")
         gate = universe_check.check(ticker)
         if gate["eligible"]:
+            sources = {sig["source"] for sig in c["signals"]}
+            mktcap = (gate["checks"].get("market_cap") or {}).get("market_cap") or 0
+            if sources == {"usaspending"} and mktcap > MAX_MARKET_CAP_FOR_GOV_SIGNAL:
+                print(f"[auto-add] ✗ {ticker} blocked: market cap ${mktcap/1e9:.0f}B — "
+                      f"gov contract signal not material above ${MAX_MARKET_CAP_FOR_GOV_SIGNAL/1e9:.0f}B (GAP-21)")
+                continue
             current.add(ticker)
             added.append(ticker)
             print(f"[auto-add] ✓ {ticker} passes universe check — added to watchlist")

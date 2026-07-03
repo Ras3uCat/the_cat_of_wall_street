@@ -15,13 +15,11 @@ All items must pass before the first live trade is executed.
 ### 1. Prediction count
 - [ ] Query Supabase: `select count(*) from predictions where skip_reason='learning_period'`
 - [ ] Minimum **10 predictions** logged (system prompt target was 30, but pipeline only went live 2026-06-23 — 10 is the realistic floor for a 6-day window)
-- [ ] At least **3 different tickers** debated (validates watchlist diversity, not a single-ticker artifact)
+  - Already tracking well ahead of target as of 2026-07-03: 50+ predictions logged since 2026-06-23 across SAIC, LMT, BA, GD, and others. Still needs a final confirming query before go-live, but this gate is not a concern.
+- [ ] At least **3 different tickers** debated (validates watchlist diversity, not a single-ticker artifact) — already satisfied per above, confirm at final check.
 
 ### 2. Pipeline end-to-end verification
-- [ ] Run `python system/data/run_daily_scan.py --watchlist LMT BAH LDOS` and confirm:
-  - Macro fetch returns `status: ok` (CBOE VIX + FRED calendar)
-  - At least 1 ticker reaches `proceed_to_debate: true`
-  - Supabase upsert succeeds (`[db] Scan synced to Supabase`)
+- [ ] Confirm the most recent scheduled scan completed successfully: `tail logs/scan.log` — look for `[db] Scan synced to Supabase` and no `catws-notify-failure` push. The daily scan runs automatically 3x/day via systemd timers and has succeeded every day since 2026-06-23; no manual invocation needed.
 - [ ] Confirm `fundamental_signals_fired` and `technical_signal_fired` columns are populated on recent predictions (not all null)
 
 ### 3. Robinhood MCP authentication
@@ -48,7 +46,7 @@ All items must pass before the first live trade is executed.
 
 ### 6. Stop-loss placement confirmation
 - [ ] Confirm you understand how to place a trailing stop via Robinhood MCP (`place_equity_order` with `order_type: 'trailing_stop'`)
-- [ ] Review Section 12 stop-loss rules: 3–5% initial, trail by 1.5% after +10%
+- [ ] Review Section 12 Trigger C stop-loss ladder: +15% gain → move stop to breakeven, +25% → trail 10% below current price, +35% → trail 8% below current price. Never move a stop downward.
 
 ### 7. Risk parameter review
 - [ ] Max single position: 10% of equity
@@ -70,5 +68,11 @@ Once all boxes are checked, in the first local session on or after 2026-08-21:
 2. Refresh account state via Robinhood MCP
 3. Check Supabase for any `approval_status='approved', executed=false` predictions from the learning period — execute the best one if still thesis-valid
 4. Run normal session startup per system prompt Section 1 — learning period check will now pass, AUTO-EXECUTE is live
+5. Enable the two execution timers (commands in `scripts/execute-pending.sh`'s header comment):
+   ```bash
+   systemctl --user enable --now catws-execute-pre-market.timer
+   systemctl --user enable --now catws-execute-pm-window.timer
+   ```
+   Section 12 Exit Management (stop-loss fill detection, trailing stop ladder, etc.) now runs automatically as Step 0 of that same session — no separate step is needed to turn on exit monitoring.
 
 **Do not execute trades if any go/no-go gate above is red.**

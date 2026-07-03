@@ -26,6 +26,23 @@ cd "$PROJECT"
   --no-session-persistence \
   "This is an automated trade execution session for the $SESSION_TYPE window on $TODAY.
 
+Step 0 — Exit management (run first, for every currently open executed position):
+Follow system/prompts/trading_system.md Section 12 Triggers A through G exactly:
+  A. Stop-loss fill detection — compare get_equity_positions MCP output against
+     logs/account_state.json. Any ticker that disappeared: assume the stop fired,
+     resolve the prediction via db.resolve_prediction with exit_reason='stop_loss',
+     fetching the approximate exit price via get_equity_quotes.
+  B-G. Target hit, trailing stop ladder, timeframe expiry, thesis invalidation,
+     earnings proximity, LTCG flag — apply exactly as specified in Section 12. This
+     is an unattended session with no one to answer an A/B prompt: for any trigger
+     that normally asks Ryan to choose (B, D, G), send a push notification describing
+     the situation and leave the position/stop unchanged until Ryan reviews it in a
+     later session — do NOT auto-exit or auto-extend. Only Trigger A (already-fired
+     stop) and Trigger C (raising a trailing stop upward, explicitly never downward)
+     involve taking action without asking first, per their existing rules.
+After Step 0 completes, refresh account state (python system/data/account.py) before
+proceeding to entry execution below.
+
 Read: $QUEUE_FILE
 Execute every entry where executed=false and scan_date=$TODAY.
 

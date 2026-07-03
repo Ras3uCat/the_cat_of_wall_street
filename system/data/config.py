@@ -29,6 +29,12 @@ MIN_MARKET_CAP = 500_000_000 # $500M
 EARNINGS_BUFFER_DAYS = 3     # no trade within 3 days of earnings
 PDT_DAY_TRADE_LIMIT = 3      # max day trades in 5 business days (under $25K equity)
 
+# GAP-21: a gov contract structurally can't be material (>=1% of revenue) for a
+# company this large — auto-add blocks candidates whose only discovery signal is
+# a USASpending hit above this cap. Largest current sweet-spot name (AXON) is
+# ~$48B; next tier up (AMD/JPM) is $880B+ — wide margin, tunable.
+MAX_MARKET_CAP_FOR_GOV_SIGNAL = 100_000_000_000  # $100B
+
 # Signal staleness thresholds (trading_system.md § Signal Staleness Thresholds)
 MATERIAL_FILING_MAX_AGE_DAYS = 3  # 8-K material filing — news cycle absorbs within 1-3 days
 

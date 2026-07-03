@@ -137,6 +137,8 @@ Exit triggers (Section 12, Triggers A–G) require Ryan to manually open a local
 
 **Longer-term fix:** Push notification when a held ticker has a new material 8-K or earnings date slip. The cloud scan can detect these even without Robinhood MCP access.
 
+**Resolved (2026-07-03):** Trigger A (and the rest of Section 12, Triggers A–G) now run automatically as Step 0 of `scripts/execute-pending.sh`'s existing unattended `claude -p` session (post-open and PM-window windows) — see GAP-20 below for the full fix. Triggers B/D/G, which normally ask Ryan an A/B question, send a push notification and leave state unchanged instead of blocking. Cannot be end-to-end verified until real positions exist post-2026-08-21 (the execute-pending timers stay disabled until then, per GAP-17).
+
 ---
 
 ### GAP-23: Section 1 Step 7 Circuit Breaker Runs After Debates — Sizing Not Affected  ← NEW / HIGH
@@ -288,6 +290,8 @@ When Robinhood executes a stop-loss order (price hits the stop), the prediction 
 
 **Possible improvement (post-MVP):** Push notification from Robinhood's own app covers this for Ryan's awareness. The Supabase record can be reconciled at next local session. Not a priority until the system has executed live trades.
 
+**Resolved (2026-07-03):** Robinhood MCP tools are only callable from a Claude Code session, never a standalone Python script — so the fix follows the same pattern as `scripts/execute-pending.sh` (the one place in this codebase that already runs MCP unattended via `claude -p --dangerously-skip-permissions`, on a systemd timer, currently disabled until 2026-08-21). Added a "Step 0 — Exit management" block to that script's prompt, run before its existing entry-execution steps, covering Section 12 Triggers A–G in the same session (reuses the existing MCP-authenticated session instead of adding a third daily automation surface). No live positions exist during the learning period, so this can't be tested end-to-end yet — first real verification happens the first time a stop-loss fires after 2026-08-21.
+
 ---
 
 ### GAP-21: Watchlist Skewed Away from Gov Contract Signal Sweet Spot  ← NEW / LOW
@@ -296,6 +300,8 @@ The strategy doc states: "A $50M contract is material for a $500M company, noise
 The good names for gov contract signals are the mid-tier defense/IT names: LDOS (~$25B), BAH (~$14B), NOC (~$70B). These are present, but the watchlist is diluted by names where this signal will rarely fire.
 
 **Not a blocking gap.** The scan filters these out via signal convergence (a gov contract too small to matter won't fire as a meaningful signal). But the watchlist could be tightened over time as the system learns which tickers actually produce actionable signals.
+
+**Partially resolved (2026-07-03):** The gov-contract materiality check (`fetch_gov_contracts.py`, >=1% of annual revenue) was already working correctly and is not the source of dilution — mega-caps reach debate via filings+technicals instead, which is the general 2-signal convergence rule working as designed, not a bug. The actual fix: `discover.py --auto-add` now blocks any *new* candidate whose only discovery signal is a USASpending contract hit and whose market cap exceeds `MAX_MARKET_CAP_FOR_GOV_SIGNAL` ($100B, in `config.py`) — this prevents future NVDA-scale names from being auto-added on a gov-contract signal that structurally can't be material for them. Existing watchlist tickers (NVDA, AMD, JPM) are intentionally left in place — retroactive removal is [[GAP-62]]'s job, pending per-ticker accuracy data that doesn't exist yet.
 
 ---
 
@@ -730,13 +736,13 @@ No fix applied yet — flagged for later once sufficient prediction volume exist
 | GAP-12 Short selling scope | Resolved — long-only v1, strategy doc §12 |
 | GAP-13 No scheduled scan | **Resolved** — 3 cloud crons created (8 AM, 12:30 PM, 2:30 PM CT) |
 | GAP-14 Single daily scan | **Resolved** — midday heartbeat + PM entry window crons live |
-| GAP-15 No exit monitoring | **Partial** — midday heartbeat checks thesis invalidation (8-Ks/insider sells); stop-loss fill detection still manual |
+| GAP-15 No exit monitoring | **Resolved (2026-07-03)** — midday heartbeat checks thesis invalidation (8-Ks/insider sells); Triggers A-G now also run automatically via `execute-pending.sh` Step 0 (see GAP-20). Pending live verification post-2026-08-21 |
 | GAP-16 Intraday signal blind spot | **Resolved** — midday heartbeat catches intraday 8-Ks and options refresh |
 | GAP-17 Learning period activation | **Resolved** — pre-launch checklist at `planning/features/01_active/gap17_pre_launch_checklist.md` |
 | GAP-18 Cloud debate account state | **Resolved** — Step 0 now has explicit heat re-check (2b) with live Robinhood data; cloud approval does not override live heat check |
 | GAP-19 Hardcoded macro dates | **Resolved** — `FOMC_DATES_2026` renamed `FOMC_DATES`; 2027 dates added through 2027-12-16 |
-| GAP-20 Stop-loss fill detection | **Open — Low** — manual resolution acceptable at MVP scale |
-| GAP-21 Watchlist signal dilution | **Open — Low** — monitor signal hit rates over first 90 days |
+| GAP-20 Stop-loss fill detection | **Resolved (2026-07-03)** — Section 12 Triggers A-G added as Step 0 of `execute-pending.sh`'s unattended session; pending live verification post-2026-08-21 (no positions exist yet to test against) |
+| GAP-21 Watchlist signal dilution | **Partially resolved (2026-07-03)** — auto-add now blocked for mega-cap-only gov-contract candidates (`MAX_MARKET_CAP_FOR_GOV_SIGNAL`); existing NVDA/AMD/JPM left in place pending [[GAP-62]] per-ticker accuracy data |
 | GAP-22 resolve_prediction at entry | **Resolved** — Section 11 Execution Flow Step 6 changed to `db.update_prediction`; `resolve_prediction` is exit-only |
 | GAP-23 Step 7 after debates | **Resolved** — Section 1 Steps 6/7 swapped; circuit breaker now precedes debate sequence |
 | GAP-24 No market hours check (local) | **Resolved** — "Before Step 0 — Market hours gate" added to Local Session Startup Protocol |
