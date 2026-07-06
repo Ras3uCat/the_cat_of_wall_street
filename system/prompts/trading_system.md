@@ -335,7 +335,7 @@ What would make me wrong: [Under what conditions would the bull case actually pl
 3. **Sector concentration**: Is the account already concentrated in this sector? Cap at 20–30% of total heat per sector.
 4. **Correlation**: Does this position likely move with existing holdings? Stocks in the same sector in the same regime often move together.
 5. **Overnight/weekend exposure**: Is entry near end of week? Would this position be held over a weekend? Size down or flag.
-6. **PDT**: If account equity < $25K, is this within the 3-day-trade limit?
+6. **Settled funds**: The Agentic account is a cash account — no PDT limit. If `unsettled_funds` in account state is nonzero (a same-day sale hasn't settled yet), confirm settled buying power (buying_power − unsettled_funds) still covers this trade's notional.
 7. **Duplicate same-day position**: Was this ticker already approved and queued earlier in today's session? If so → veto on duplication grounds regardless of how strong this debate's case is.
 
 **Output format:**
@@ -347,7 +347,7 @@ Portfolio heat check: [OK / flagged — reason]
 Sector concentration: [OK / flagged — reason]
 Binary event proximity: [OK / flagged — reason]
 Overnight risk: [OK / flagged — reason]
-PDT check: [OK / flagged — reason]
+Settled funds check: [OK / flagged — reason]
 Risk summary: [1–2 sentences on the dominant risk]
 ```
 
@@ -863,9 +863,9 @@ If no approved predictions: skip to Step 1 (account state fetch).
 After confirming markets are open, fetch live account state and write it to disk so the Python data pipeline can access it:
 
 ```
-1. Call Robinhood MCP: get_account
-   → record: equity, buying_power
-2. Call Robinhood MCP: get_positions
+1. Call Robinhood MCP: get_accounts
+   → record: equity, buying_power, unsettled_funds (if available)
+2. Call Robinhood MCP: get_equity_positions
    → record each position: ticker, shares, avg_cost, current_value
    → estimate stop_loss_pct for each from your records (use 4% if unknown)
 3. Write logs/account_state.json using this exact format:
@@ -876,7 +876,7 @@ After confirming markets are open, fetch live account state and write it to disk
   "fetched_at": "YYYY-MM-DDTHH:MM:SS",
   "equity": 0.00,
   "buying_power": 0.00,
-  "day_trades_used_5d": 0,
+  "unsettled_funds": 0.00,
   "positions": [
     {
       "ticker": "NVDA",
@@ -898,7 +898,7 @@ import account
 account.write_state({
     'equity': 0.00,
     'buying_power': 0.00,
-    'day_trades_used_5d': 0,
+    'unsettled_funds': 0.00,
     'positions': []
 })
 "
@@ -913,7 +913,7 @@ Verify it wrote correctly:
 
 ```
 1. Get live quote:
-   → robinhood MCP: get_quote(ticker)
+   → robinhood MCP: get_equity_quotes(ticker)
 
 2. Calculate order parameters:
    → limit_price    = ask_price + 0.01          (buy limit slightly above ask for fills)
@@ -923,7 +923,7 @@ Verify it wrote correctly:
    → Verify: notional ≤ buying_power (do not exceed buying power; note at $100 account notional will be $5–$15)
 
 3. Place buy order:
-   → robinhood MCP: place_order(
+   → robinhood MCP: place_equity_order(
          ticker      = TICKER,
          side        = "buy",
          type        = "limit",
@@ -933,11 +933,11 @@ Verify it wrote correctly:
    → Record order_id from response.
 
 4. Confirm fill (wait for confirmation or status):
-   → robinhood MCP: get_order(order_id)
+   → robinhood MCP: get_equity_orders(order_id)
    → Do not place stop until buy order is confirmed filled.
 
 5. Place stop-loss order immediately:
-   → robinhood MCP: place_order(
+   → robinhood MCP: place_equity_order(
          ticker      = TICKER,
          side        = "sell",
          type        = "stop",
@@ -966,7 +966,7 @@ db.update_prediction('pred_YYYYMMDD_NNN', {
 ### Checking drawdown via MCP (Section 1 Step 7)
 
 ```
-→ robinhood MCP: get_account
+→ robinhood MCP: get_accounts
 → Compare current equity to starting equity noted at session open.
   If (starting_equity - current_equity) / starting_equity >= 0.15 → halt:
     1. Write logs/trading_halt.json:

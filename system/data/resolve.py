@@ -17,6 +17,7 @@ load_dotenv()
 
 import db
 import fetch_market_data
+from config import PRICE_STALENESS_MAX_DAYS
 
 
 def _fetch_close(ticker: str, as_of: str) -> float | None:
@@ -31,6 +32,10 @@ def _fetch_close(ticker: str, as_of: str) -> float | None:
     scan_date past that window by the time it expires (GAP-59). It remains as the
     fallback for dates not yet persisted (e.g. today's close, before any other
     fetch has written it to Supabase).
+
+    Both paths apply PRICE_STALENESS_MAX_DAYS (GAP-65): a match more than that many
+    days before as_of is treated as no data rather than silently resolved against a
+    stale price across a data-source gap.
     """
     price = db.get_close_price(ticker, as_of)
     if price is not None:
@@ -49,7 +54,13 @@ def _fetch_close(ticker: str, as_of: str) -> float | None:
         before = [(d, c) for d, c in candidates if d <= target]
         if not before:
             return None
-        return float(max(before, key=lambda x: x[0])[1])
+        closest_date, closest_close = max(before, key=lambda x: x[0])
+        gap_days = (target - closest_date).days
+        if gap_days > PRICE_STALENESS_MAX_DAYS:
+            print(f"  [fetch_market_data] {ticker}: nearest bar is {gap_days}d before {as_of} "
+                  f"(> {PRICE_STALENESS_MAX_DAYS}d threshold) — treating as no data")
+            return None
+        return float(closest_close)
     except Exception as e:
         print(f"  [fetch_market_data] price fetch failed for {ticker} on {as_of}: {e}")
         return None

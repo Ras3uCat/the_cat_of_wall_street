@@ -13,6 +13,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from config import PRICE_STALENESS_MAX_DAYS
+
 _client = None
 
 
@@ -362,13 +364,15 @@ def upsert_price_history(ticker: str, rows: list[dict], market_cap: int, source:
         return False
 
 
-def get_close_price(ticker: str, as_of: str) -> float | None:
+def get_close_price(ticker: str, as_of: str, max_staleness_days: int = PRICE_STALENESS_MAX_DAYS) -> float | None:
     """
     Fetch the closing price on or just before as_of date from persisted price_history.
     Unlike fetch_market_data.fetch() (a rolling "last N days from now" window), this
     queries by absolute date — works for arbitrarily old dates once a row for that
-    period has been upserted. Returns None if Supabase is unavailable or no row
-    exists on/before as_of.
+    period has been upserted. Returns None if Supabase is unavailable, no row exists
+    on/before as_of, or the nearest row is more than max_staleness_days before as_of
+    (GAP-65 — a multi-day price_history gap from a data-source outage should be
+    treated as no data, not silently resolved against a stale price).
     """
     client = get_client()
     if not client:
@@ -376,7 +380,7 @@ def get_close_price(ticker: str, as_of: str) -> float | None:
     try:
         result = (
             client.table("price_history")
-            .select("close")
+            .select("date,close")
             .eq("ticker", ticker.upper())
             .lte("date", as_of)
             .order("date", desc=True)
@@ -384,7 +388,14 @@ def get_close_price(ticker: str, as_of: str) -> float | None:
             .execute()
         )
         rows = result.data or []
-        return float(rows[0]["close"]) if rows and rows[0].get("close") is not None else None
+        if not rows or rows[0].get("close") is None:
+            return None
+        gap_days = (date.fromisoformat(as_of) - date.fromisoformat(rows[0]["date"])).days
+        if gap_days > max_staleness_days:
+            print(f"[db] get_close_price: nearest row for {ticker} is {gap_days}d before {as_of} "
+                  f"(> {max_staleness_days}d threshold) — treating as no data")
+            return None
+        return float(rows[0]["close"])
     except Exception as e:
         print(f"[db] get_close_price failed: {e}")
         return None

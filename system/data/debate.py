@@ -276,7 +276,10 @@ def main():
             "ticker": ticker,
             "scan_date": scan_date,
             "signals_fired": signals_fired,
-            "signal_categories_count": result.get("signal_categories_count"),
+            # GAP-66: recompute from the filtered list rather than trusting the LLM's
+            # raw count — if a non-canonical value was dropped above, the model's count
+            # would otherwise overstate the signals actually feeding Component 1 scoring.
+            "signal_categories_count": len(signals_fired),
             "confidence_score": score,
             "confidence_components": result.get("confidence_components", {}),
             "confidence_threshold": threshold,

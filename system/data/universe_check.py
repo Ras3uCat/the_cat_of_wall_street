@@ -7,7 +7,8 @@ Checks:
 2. Market cap >= $500M (no micro-caps)
 3. No earnings within 3 calendar days (binary event risk)
 4. No wash sale conflict (not sold at loss in last 30 days per prediction log)
-5. No PDT conflict (entering + exiting same day won't trigger 4th day trade)
+5. Settled funds surfaced for Risk Manager awareness (cash account — no PDT limit,
+   but proceeds settle T+1; see GAP-64 in gap-analysis.md)
 """
 import argparse
 import json
@@ -18,7 +19,7 @@ import cache
 import db
 import fetch_earnings_calendar
 import fetch_market_data
-from config import MIN_ADV, MIN_MARKET_CAP, PDT_DAY_TRADE_LIMIT, PREDICTIONS_DIR
+from config import MIN_ADV, MIN_MARKET_CAP, PREDICTIONS_DIR
 
 
 def _check_adv_and_cap(ticker: str) -> tuple[dict, dict]:
@@ -136,36 +137,35 @@ def _check_wash_sale(ticker: str) -> dict:
                 "note": f"Wash sale check failed: {e} — treating as clear"}
 
 
-def _check_pdt() -> dict:
+def _check_settled_funds() -> dict:
     """
-    Checks current day-trade count from logs/account_state.json (written by Claude
-    from the Robinhood MCP at session start). Warns but does not block if missing.
-    PDT rule: max 3 round-trip day trades within any 5 business days if equity < $25K.
+    GAP-64: the Agentic account is a cash account, not a margin account — it is not
+    subject to the classic PDT 3-day-trade limit (trading_system.md §6, "Cash
+    settlement (T+1)"). The real constraint is T+1 settlement: proceeds from a
+    same-day sale are not immediately available to fund a new buy. This is
+    informational only — it never blocks a ticker at the universe-gate stage, since
+    the actual notional isn't known yet. The Risk Manager (Role 6) is responsible
+    for confirming settled buying power covers the proposed notional before entry.
     """
     try:
         import account as acct
         state = acct.load()
-        equity = state.get("equity", 0)
-        if equity >= 25_000:
-            return {"ok": True, "note": "Account equity >= $25K — PDT rule does not apply", "equity": equity}
-        day_trades_used = state.get("day_trades_used_5d", 0)
-        ok = day_trades_used < PDT_DAY_TRADE_LIMIT
+        unsettled = state.get("unsettled_funds", 0)
         return {
-            "ok": ok,
-            "day_trades_used": day_trades_used,
-            "limit": PDT_DAY_TRADE_LIMIT,
-            "equity": equity,
-            "reason": None if ok else f"Day trade limit reached ({day_trades_used}/{PDT_DAY_TRADE_LIMIT}) — entering and exiting today would trigger PDT restriction",
+            "ok": True,
+            "unsettled_funds": unsettled,
+            "note": None if not unsettled else
+                f"${unsettled:,.2f} unsettled from a same-day sale — Risk Manager must confirm "
+                f"settled buying power covers this trade's notional before entry",
         }
     except FileNotFoundError:
         return {
             "ok": True,
-            "day_trades_used": None,
-            "limit": PDT_DAY_TRADE_LIMIT,
-            "note": "logs/account_state.json not found — PDT check skipped. Claude must fetch account state via Robinhood MCP at session start.",
+            "unsettled_funds": None,
+            "note": "logs/account_state.json not found — settled funds check skipped. Claude must fetch account state via Robinhood MCP at session start.",
         }
     except Exception as e:
-        return {"ok": True, "note": f"PDT check failed: {e} — skipped"}
+        return {"ok": True, "note": f"Settled funds check failed: {e} — skipped"}
 
 
 def check(ticker: str) -> dict:
@@ -174,14 +174,14 @@ def check(ticker: str) -> dict:
     adv, mktcap = _check_adv_and_cap(ticker)
     earnings = _check_earnings(ticker)
     wash = _check_wash_sale(ticker)
-    pdt = _check_pdt()
+    settled_funds = _check_settled_funds()
 
     checks = {
         "adv": adv,
         "market_cap": mktcap,
         "earnings_clear": earnings,
         "wash_sale_clear": wash,
-        "pdt_clear": pdt,
+        "settled_funds": settled_funds,
     }
 
     fail_reasons = [

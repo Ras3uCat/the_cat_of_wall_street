@@ -308,7 +308,7 @@ python technicals.py --ticker NVDA
 | Market cap ≥ $500M | Current | Micro-caps are susceptible to manipulation, have thin options markets, and institutional signals are less applicable. The $500M floor puts us in "small cap" and above. |
 | No earnings within 3 days | Calendar days | Earnings are binary events. A stop-loss order cannot protect against a gap open that occurs before market open — if the stock gaps 20% down on earnings, your stop at -5% doesn't execute at -5%. Powered by `fetch_earnings_calendar.py` — `unknown` confidence is treated as `earnings_clear: false` (conservative block). |
 | No wash sale conflict | 30-day lookback in Supabase | IRS Section 1091: if you sell at a loss and repurchase the same (or substantially identical) security within 30 days before or after, the tax loss is disallowed. This check prevents accidentally triggering the rule. |
-| PDT compliance | < 3 day trades in 5 business days (margin accounts with equity < $25K only) | PDT rule applies to margin accounts only — the Agentic account is a cash account and is not subject to this restriction. Check is skipped if `account_state.json` is not present. |
+| Settled funds (informational) | Surfaces `unsettled_funds` from account state | The Agentic account is a cash account — no PDT limit. The real constraint is T+1 settlement: same-day sale proceeds aren't immediately available. This check never blocks a ticker (notional isn't known at the universe-gate stage); it surfaces `unsettled_funds` for the Risk Manager to confirm settled buying power before entry. Skipped if `account_state.json` is not present. |
 
 **CLI:**
 ```bash
@@ -361,7 +361,7 @@ This is the bridge between the Robinhood MCP (Claude-only) and the Python data p
   "fetched_at": "2026-06-22T09:30:00",
   "equity": 5000.00,
   "buying_power": 4200.00,
-  "day_trades_used_5d": 1,
+  "unsettled_funds": 0.00,
   "positions": [
     { "ticker": "NVDA", "shares": 5, "avg_cost": 138.50, "current_value": 720.00, "stop_loss_pct": 4.0 }
   ]
@@ -375,7 +375,7 @@ This is the bridge between the Robinhood MCP (Claude-only) and the Python data p
 | `load()` | All — raises `FileNotFoundError` if missing, `AccountStateError` if > 30 min old |
 | `get_equity()` | Risk Manager heat calculations |
 | `get_buying_power()` | Order sizing |
-| `get_day_trade_count()` | PDT check in `universe_check.py` |
+| `get_unsettled_funds()` | Settled-funds check in `universe_check.py` |
 | `get_positions()` | Portfolio heat, sector concentration |
 | `get_portfolio_heat()` | Risk Manager role — total heat as % of equity |
 | `get_sector_concentration()` | Risk Manager role — heat per GICS sector |

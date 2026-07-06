@@ -54,7 +54,9 @@ For each pending order:
    - Max 20% equity deployed in new positions per session
    - Portfolio heat cap <= 5.5% total
    - No entry if daily loss limit (5%) already hit
-   - PDT check: do not open + close same position same day if <3 day trades remaining
+   - Settled funds check: cash account, no PDT limit — if unsettled_funds > 0 (a
+     same-day sale hasn't settled), confirm settled buying power (buying_power minus
+     unsettled_funds) still covers this order's notional before placing it
 4. If all rules pass: place_equity_order via Robinhood MCP
    - account_number MUST be 426488037 (Agentic account ONLY)
    - order_type: market, time_in_force: gfd

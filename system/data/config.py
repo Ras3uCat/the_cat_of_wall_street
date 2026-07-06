@@ -27,7 +27,6 @@ CACHE_TTL = {
 MIN_ADV = 500_000            # shares/day (30-day trailing average)
 MIN_MARKET_CAP = 500_000_000 # $500M
 EARNINGS_BUFFER_DAYS = 3     # no trade within 3 days of earnings
-PDT_DAY_TRADE_LIMIT = 3      # max day trades in 5 business days (under $25K equity)
 
 # GAP-21: a gov contract structurally can't be material (>=1% of revenue) for a
 # company this large — auto-add blocks candidates whose only discovery signal is
@@ -37,6 +36,12 @@ MAX_MARKET_CAP_FOR_GOV_SIGNAL = 100_000_000_000  # $100B
 
 # Signal staleness thresholds (trading_system.md § Signal Staleness Thresholds)
 MATERIAL_FILING_MAX_AGE_DAYS = 3  # 8-K material filing — news cycle absorbs within 1-3 days
+
+# GAP-65: max gap (calendar days) between a requested resolution date and the nearest
+# persisted price_history row before treating it as "no data" rather than silently
+# resolving against a stale price across a data-source outage (Yahoo/EDGAR gaps have
+# happened before — GAP-43/44). 5 days covers a normal weekend + one holiday.
+PRICE_STALENESS_MAX_DAYS = 5
 
 # Portfolio risk limits (referenced by account.py and Risk Manager)
 PORTFOLIO_HEAT_LIMIT_PCT = 5.5      # maximum total portfolio heat as a % of equity

@@ -1,7 +1,7 @@
 # Gap Analysis — AI Trading System Strategy
 
 **Source:** Review of `ai-trading-system-strategy.md`, June 2026  
-**Last updated:** 2026-07-01 — GAP-58/59 added and resolved (signals_fired vocabulary enforcement; resolve.py's rolling-window entry-price fetch replaced with absolute-date lookup)  
+**Last updated:** 2026-07-06 — GAP-63/64/65/66 added and resolved (Section 11 MCP tool-name drift, PDT→settled-funds correction, price-staleness bound, signal_categories_count recompute)  
 **Status:** Active — gaps being addressed in strategy doc updates
 
 Each gap below links to a future `01_active/` feature or is resolved in the strategy doc.
@@ -718,6 +718,42 @@ No fix applied yet — flagged for later once sufficient prediction volume exist
 
 ---
 
+### GAP-63: Section 11 Execution Flow calls Robinhood MCP tools by names that don't exist  ← NEW / HIGH
+
+`trading_system.md` Section 11 (Session Startup, Execution Flow, and the Section 1 Step 7 drawdown check) referenced `get_account`, `get_positions`, `get_quote`, `place_order`, and `get_order` — singular/generic names. The actually-registered Robinhood MCP tools are `get_accounts`, `get_equity_positions`, `get_equity_quotes`, `place_equity_order`, and `get_equity_orders`. Section 12 (Exit Management Triggers) and `scripts/execute-pending.sh` already used the correct names — only Section 11, the part that fires real orders under AUTO-EXECUTE with no confirmation gate, had drifted. Same disease as GAP-60 (a spec drifting from the real tool surface), different location. Would have hard-failed the first live trade attempt after the 2026-08-21 learning-period end.
+
+**Resolved (2026-07-06):** All 7 occurrences in Section 11 corrected to the registered tool names (`get_accounts`, `get_equity_positions`, `get_equity_quotes`, `place_equity_order` ×2, `get_equity_orders`, `get_accounts`).
+
+---
+
+### GAP-64: PDT rule enforced on a PDT-exempt account; the rule that actually applies (T+1 settlement) had no code  ← NEW / HIGH
+
+`config.py` (`PDT_DAY_TRADE_LIMIT`), `universe_check.py` (`_check_pdt`), Role 6's checklist item 6, and `scripts/execute-pending.sh` all implemented the classic margin-account 3-day-trade PDT limit. But `trading_system.md` §6 and its own Section 3 note already stated correctly: the Agentic account is a **cash account, PDT-exempt** — the real constraint is T+1 settlement of sale proceeds. `system/data/README.md:311` even documented this contradiction explicitly ("PDT rule applies to margin accounts only... is not subject to this restriction") while the code next to it enforced the rule anyway. The rule that does apply (settled buying power) existed only as prose — no field in `account_state.json`, no function computed it. Net effect: the system could falsely block on an inapplicable rule while the applicable one went unchecked.
+
+**Fix:** Replace the PDT day-trade check with a settled-funds surface: `account_state.json` schema gains `unsettled_funds` (replacing `day_trades_used_5d`); `account.get_unsettled_funds()` replaces `get_day_trade_count()`; `universe_check._check_settled_funds()` replaces `_check_pdt()` — informational only (never blocks at the universe-gate stage, since notional isn't known yet), surfacing `unsettled_funds` for the Risk Manager to act on. Role 6 checklist item 6 and its output line reworded from "PDT" to "Settled funds"; `execute-pending.sh`'s inline PDT check corrected to the same logic.
+
+**Resolved (2026-07-06):** `PDT_DAY_TRADE_LIMIT` removed from `config.py`. `account.py`, `universe_check.py`, `trading_system.md` (§Role 6, account_state.json schema ×2), `scripts/execute-pending.sh`, and `system/data/README.md` all updated to the settled-funds model described above.
+
+---
+
+### GAP-65: `db.get_close_price` / `resolve.py._fetch_close` had no staleness bound on their "closest price ≤ target date" fallback  ← NEW / MEDIUM
+
+Both the Supabase absolute-date lookup (`db.get_close_price`, added for GAP-59) and the `fetch_market_data` fallback in `resolve.py._fetch_close` pick the nearest `price_history` row on or before the target date with no check on how far before. If `price_history` has a multi-day gap — a documented real failure mode in this project (GAP-43/44's Yahoo/EDGAR outages) — resolution would silently use a stale price as the entry or exit price, corrupting `actual_move_pct`, `direction_correct`, and `accuracy_score` with no flag distinguishing an exact match from a stale fallback. These fields feed the weekly self-improvement protocol and Component 4 (Historical Combo Accuracy) — silent corruption here degrades calibration without any visible symptom.
+
+**Fix:** Added `PRICE_STALENESS_MAX_DAYS = 5` to `config.py`. `db.get_close_price` now takes a `max_staleness_days` param (default from config) and returns `None` — logging the gap — if the nearest row is further than that from `as_of`. `resolve.py._fetch_close`'s fallback path applies the identical bound to its own nearest-row selection.
+
+**Resolved (2026-07-06):** Both paths now treat a >5-day gap as "no data" rather than a stale match; `resolve.py` already prints "could not fetch ... skipping" and increments `errors` in that case, so the ticker is skipped and visible in logs rather than silently mis-resolved.
+
+---
+
+### GAP-66: `debate.py` persisted the LLM's raw `signal_categories_count` instead of recomputing it after invalid `signals_fired` values are filtered  ← NEW / LOW
+
+`debate.py` already drops non-canonical `signals_fired` values before insert (GAP-58's safety net), but continued to write `result.get("signal_categories_count")` — the model's own raw count from before filtering. If the LLM's narrated count included a since-dropped non-canonical name, the stored count overstates the actual `signals_fired` length feeding Component 1 (Signal Convergence) scoring and calibration.
+
+**Resolved (2026-07-06):** `debate.py` now sets `"signal_categories_count": len(signals_fired)` — computed from the already-filtered, already-sorted list, never the model's raw value.
+
+---
+
 ## Resolution Tracking
 
 | Gap | Status |
@@ -784,3 +820,7 @@ No fix applied yet — flagged for later once sufficient prediction volume exist
 | GAP-60 `scan-and-debate.sh` bypasses `debate.py`, diverged spec | **Resolved (2026-07-01)** — inline prompt corrected (approval_status, signals_fired vocabulary, learning_period skip_reason); added bounded retry + dedup for session-limit resilience. Dual-implementation drift risk accepted; API switch not economical at current account size (confirmed with Ryan) |
 | GAP-61 Hard-stop vetoes skip confidence scoring — null score on binary-macro-event days | **Resolved (2026-07-01)** — added zero-added-cost "Hard-Stop Partial Score" (Components 1/3/4, Component 2 null, Component 5 forced 0) to Role 7; Role 6 VETO handling split into pre-analysis (binary event, partial score) vs. post-analysis (full score retained) paths |
 | GAP-62 No watchlist removal mechanism — nothing flags underperforming tickers | **Open — Low** — revisit once tickers have enough resolved predictions (30+) for a meaningful trailing win rate; not urgent during learning period |
+| GAP-63 Section 11 MCP tool-name drift | **Resolved (2026-07-06)** — 7 occurrences corrected to registered tool names (`get_accounts`, `get_equity_positions`, `get_equity_quotes`, `place_equity_order`, `get_equity_orders`) |
+| GAP-64 PDT enforced on PDT-exempt account | **Resolved (2026-07-06)** — replaced with settled-funds model (`unsettled_funds` field, `get_unsettled_funds()`, `_check_settled_funds()`) across config.py, account.py, universe_check.py, trading_system.md, execute-pending.sh, README.md |
+| GAP-65 No staleness bound on price fallback lookup | **Resolved (2026-07-06)** — `PRICE_STALENESS_MAX_DAYS=5` added; `db.get_close_price` and `resolve.py._fetch_close` both reject matches further than that from the target date |
+| GAP-66 `signal_categories_count` not recomputed after filtering | **Resolved (2026-07-06)** — `debate.py` now derives it from `len(signals_fired)` post-filter, not the LLM's raw count |

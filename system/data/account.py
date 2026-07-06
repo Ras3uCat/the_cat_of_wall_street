@@ -8,8 +8,8 @@ here, and Python scripts read it.
 
 If the file is missing or stale (> 30 min old), functions raise FileNotFoundError
 so callers can handle gracefully. The system still works without account state —
-PDT checks are skipped and portfolio heat cannot be computed — but no positions
-can be safely sized.
+settled-funds checks are skipped and portfolio heat cannot be computed — but no
+positions can be safely sized.
 """
 import json
 from datetime import datetime, timedelta
@@ -60,8 +60,13 @@ def get_buying_power() -> float:
     return float(load().get("buying_power", 0))
 
 
-def get_day_trade_count() -> int:
-    return int(load().get("day_trades_used_5d", 0))
+def get_unsettled_funds() -> float:
+    """
+    GAP-64: the Agentic account is a cash account (no PDT limit) — the real
+    constraint is T+1 settlement. Returns the dollar amount from same-day sale
+    proceeds not yet settled and therefore unavailable for a new buy.
+    """
+    return float(load().get("unsettled_funds", 0))
 
 
 def get_positions() -> list[dict]:
@@ -197,7 +202,7 @@ if __name__ == "__main__":
         sectors = get_sector_concentration()
         print(f"Equity:        ${state['equity']:,.2f}")
         print(f"Buying power:  ${state['buying_power']:,.2f}")
-        print(f"Day trades:    {state['day_trades_used_5d']}/3 (5-day window)")
+        print(f"Unsettled funds: ${state.get('unsettled_funds', 0):,.2f}")
         print(f"Portfolio heat: {heat['total_heat_pct']}% (limit: {heat['heat_limit_pct']}%) — {'OK' if heat['heat_ok'] else 'AT LIMIT'}")
         print(f"Positions: {len(state.get('positions', []))}")
         if sectors["sectors"]:

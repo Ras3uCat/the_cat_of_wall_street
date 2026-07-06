@@ -61,5 +61,18 @@
     "queued_at": "2026-06-30T13:29:00.387638+00:00",
     "executed": false,
     "notes": "Score 90/100 \u2014 HIGHEST CONFIDENCE TRADE TODAY. $2.2B gov contracts (30% revenue), NASA+DHS, RSI 49.6 uptrend. DAILY LIMIT NOTE: BA+LMT filled 2-position limit for 2026-06-30 pre-market. SAIC should be FIRST PRIORITY at next local session execution. Learning period \u2014 no execution until 2026-08-21."
+  },
+  {
+    "id": "pred_20260706_003",
+    "ticker": "SAIC",
+    "direction": "long",
+    "position_size_pct": 8.0,
+    "confidence_score": 87,
+    "entry_price": 110.96,
+    "scan_date": "2026-07-06",
+    "session_type": "pre_market",
+    "queued_at": "2026-07-06T13:17:42.747+00:00",
+    "executed": false,
+    "notes": "Score 87/100. $2.34B gov contracts across 5 agencies incl. NASA (32% revenue), freshest awards 4 days old. RSI 45.4 textbook uptrend entry. Note: two prior unexecuted SAIC entries already queued (pred_20260629_035 8%, pred_20260630_018 10%) \u2014 flag for de-duplication/consolidation at next local execution session rather than stacking three separate SAIC positions. Learning period \u2014 no execution until 2026-08-21."
   }
 ]
