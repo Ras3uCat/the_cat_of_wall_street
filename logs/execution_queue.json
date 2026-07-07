@@ -74,5 +74,18 @@
     "queued_at": "2026-07-06T13:17:42.747+00:00",
     "executed": false,
     "notes": "Score 87/100. $2.34B gov contracts across 5 agencies incl. NASA (32% revenue), freshest awards 4 days old. RSI 45.4 textbook uptrend entry. Note: two prior unexecuted SAIC entries already queued (pred_20260629_035 8%, pred_20260630_018 10%) \u2014 flag for de-duplication/consolidation at next local execution session rather than stacking three separate SAIC positions. Learning period \u2014 no execution until 2026-08-21."
+  },
+  {
+    "id": "pred_20260707_004",
+    "ticker": "SAIC",
+    "direction": "long",
+    "position_size_pct": 6.0,
+    "confidence_score": 71,
+    "entry_price": 114.70,
+    "scan_date": "2026-07-07",
+    "session_type": "pre_market",
+    "queued_at": "2026-07-07T00:00:00+00:00",
+    "executed": false,
+    "notes": "Score 71/100. 3 fresh material gov contracts (NASA $107.1M + GSA $474.0M, both 07-02; GSA $529.9M, 07-01) = $2.34B/32% revenue across 7 material awards total. RSI 51 clean uptrend. Sized down to 6% (vs. 8-10% in prior SAIC entries) specifically because THIS IS THE FOURTH unexecuted SAIC entry queued (pred_20260629_035 8%, pred_20260630_018 10%, pred_20260706_003 8%, this one 6% = 32% aggregate if all filled). DO NOT execute all four at full stacked size \u2014 consolidate to one position at next local execution session. Learning period \u2014 no execution until 2026-08-21."
   }
 ]

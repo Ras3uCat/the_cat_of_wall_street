@@ -8,6 +8,10 @@ At the start of every session in this directory, read the full system prompt bef
 
 That file defines your role, the 7-agent debate protocol, the confidence score calculation, the approval flow, risk rules, and how to log predictions. Everything you do in this project is governed by it.
 
+Two lookup-only files are split out and are **not** part of this mandatory read — pull them in only when the section that references them is actually relevant:
+- `system/prompts/signal_reference.md` — signal staleness thresholds and interpretation tables (was Section 2)
+- `system/prompts/reference.md` — CLI command list and the "what this system is not" scope reminder (was Sections 9–10)
+
 ---
 
 ## Mode
@@ -39,12 +43,15 @@ Scripts in `system/data/` must be run from the project root or with `sys.path` s
 ai-trading-system-strategy.md   ← master strategy doc (source of truth for design decisions)
 watchlist.json                  ← default ticker list for daily scans
 system/
-  prompts/trading_system.md     ← operational system prompt (READ THIS FIRST)
-  data/                         ← all data pipeline scripts
-  schemas/supabase_schema.sql   ← DB schema (already applied)
+  prompts/trading_system.md         ← operational system prompt (READ THIS FIRST)
+  prompts/signal_reference.md       ← signal interpretation tables (read on demand, not mandatory)
+  prompts/reference.md              ← CLI commands + scope reminder (read on demand, not mandatory)
+  data/                             ← all data pipeline scripts
+  schemas/supabase_schema.sql       ← DB schema (already applied)
 planning/
-  findings/gap-analysis.md      ← known gaps and their status
-  features/01_active/           ← current work items
+  findings/gap-analysis.md          ← known OPEN gaps
+  findings/gap-analysis-resolved.md ← archived/resolved gaps (historical reference only)
+  features/01_active/               ← current work items
 logs/
   data_cache/                   ← API response cache (ephemeral, gitignored)
   predictions/                  ← local backup of scan packets (gitignored)
