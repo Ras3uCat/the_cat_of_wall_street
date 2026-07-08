@@ -12,9 +12,17 @@ const COMPONENT_LABELS: Record<string, string> = {
   risk_mgr:    'RISK MGR',
 }
 
+const COMPONENT_MAX: Record<string, number> = {
+  convergence: 30,
+  debate:      25,
+  regime:      20,
+  historical:  15,
+  risk_mgr:    10,
+}
+
 function SegBar({ value, max }: { value: number; max: number }) {
   const SEGS   = 10
-  const filled = Math.round((value / max) * SEGS)
+  const filled = Math.min(SEGS, Math.max(0, Math.round((value / max) * SEGS)))
   return (
     <span className="font-mono text-brand-cyan text-xs tracking-[0.1em]">
       {'[' + '■'.repeat(filled) + '□'.repeat(SEGS - filled) + ']'}
@@ -111,8 +119,8 @@ export default async function PredictionDetail({ params }: { params: Promise<{ i
               <span className="font-space text-[10px] text-brand-white/35 tracking-wider w-24 shrink-0">
                 {COMPONENT_LABELS[key]}
               </span>
-              <SegBar value={val ?? 0} max={20} />
-              <span className="font-orbitron text-[10px] text-brand-cyan/60 w-8 text-right">{val}/20</span>
+              <SegBar value={val ?? 0} max={COMPONENT_MAX[key]} />
+              <span className="font-orbitron text-[10px] text-brand-cyan/60 w-8 text-right">{val}/{COMPONENT_MAX[key]}</span>
             </div>
           ))}
           {p.confidence_score != null && (
