@@ -87,5 +87,18 @@
     "queued_at": "2026-07-07T00:00:00+00:00",
     "executed": false,
     "notes": "Score 71/100. 3 fresh material gov contracts (NASA $107.1M + GSA $474.0M, both 07-02; GSA $529.9M, 07-01) = $2.34B/32% revenue across 7 material awards total. RSI 51 clean uptrend. Sized down to 6% (vs. 8-10% in prior SAIC entries) specifically because THIS IS THE FOURTH unexecuted SAIC entry queued (pred_20260629_035 8%, pred_20260630_018 10%, pred_20260706_003 8%, this one 6% = 32% aggregate if all filled). DO NOT execute all four at full stacked size \u2014 consolidate to one position at next local execution session. Learning period \u2014 no execution until 2026-08-21."
+  },
+  {
+    "id": "pred_20260707_010",
+    "ticker": "LMT",
+    "direction": "long",
+    "position_size_pct": 5.0,
+    "confidence_score": 65,
+    "entry_price": 533.12,
+    "scan_date": "2026-07-07",
+    "session_type": "pm_window",
+    "queued_at": "2026-07-07T19:44:03+00:00",
+    "executed": false,
+    "notes": "Score 65/100 \u2014 marginal pass, dropped from 73 to 65 after Adversarial Reviewer challenged IDIQ ceiling-value overstatement on the $48.06B DOE + $15.56B Orion contracts (both real, but face value materially overstates near-term revenue impact for a $124B company). NASA/DOE contract breadth (6+ awards in 90 days) plus a fresh uptrend flip off the mid-June low (RSI 50.9, neutral) support the entry. 13-day timeframe deliberately sized to exit before the 2026-07-22 earnings date. Sized down to 5% (vs. a would-be 6-7%) for queue-level Aerospace & Defense concentration \u2014 one other unexecuted LMT entry (pred_20260630_010, 5%) plus BA (10%) and GD (7%) are already queued from prior sessions, 22% aggregate before this entry. Razor-thin margin above threshold \u2014 flag for closer-than-usual monitoring if executed. Learning period \u2014 no execution until 2026-08-21."
   }
 ]

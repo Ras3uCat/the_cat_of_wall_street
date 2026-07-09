@@ -3323,3 +3323,620 @@ Notable catch: I initially found stale `/tmp/debate_*.txt` files with different 
 
 `outcome_summary` on the scan row is updated. No trades executed (learning period + no ENTER survived risk review anyway).
 [Tue Jul  7 01:13:59 PM CDT 2026] Debate session complete (attempt 2).
+[Tue Jul  7 02:30:24 PM CDT 2026] Starting pm_window scan...
+2026-07-07 14:30:34 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/macro_history?on_conflict=date "HTTP/2 200 OK"
+2026-07-07 14:30:58 INFO __main__: Scanning 25 tickers in parallel (up to 3 workers)...
+Running daily scan for: AMD, AXON, BA, BAH, CRM, CRWD, CSWC, GD, GE, HON, JPM, LDOS, LHX, LMT, NOC, NOW, NVDA, ORCL, PANW, PLTR, RTX, SAIC, SNOW, UNH, VERX
+  Scanning 25 tickers in parallel (up to 3 workers)...
+2026-07-07 14:31:08 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:31:08 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:31:09 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:31:09 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:31:09 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:31:09 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:31:09 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:31:09 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:31:09 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [AMD] done — signals=0
+  [BA] done — signals=1
+  [AXON] done — signals=0
+2026-07-07 14:31:19 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:31:19 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:31:19 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [CRWD] done — signals=0
+2026-07-07 14:31:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:31:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:31:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:31:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:31:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:31:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:31:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:31:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:31:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [CRM] done — signals=0
+  [BAH] done — signals=2
+  [CSWC] done — signals=0
+2026-07-07 14:31:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:31:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:31:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:31:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:31:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:31:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:31:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:31:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:31:47 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [GD] done — signals=0
+  [GE] done — signals=0
+  [HON] done — signals=1
+2026-07-07 14:31:59 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:31:59 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:31:59 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:32:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:32:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:32:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:32:06 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:32:06 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:32:06 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [LHX] done — signals=0
+  [JPM] done — signals=0
+  [LDOS] done — signals=0
+2026-07-07 14:32:15 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:32:15 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:32:15 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:32:15 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:32:16 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:32:16 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [LMT] done — signals=2
+  [NOW] done — signals=0
+2026-07-07 14:32:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:32:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:32:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:32:26 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:32:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:32:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NOC] done — signals=0
+  [ORCL] done — signals=0
+2026-07-07 14:32:34 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:32:35 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:32:35 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NVDA] done — signals=0
+2026-07-07 14:32:49 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:32:50 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:32:50 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:32:52 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:32:53 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:32:53 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:32:53 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:32:54 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:32:54 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [PANW] done — signals=2
+  [PLTR] done — signals=1
+  [RTX] done — signals=0
+2026-07-07 14:33:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:33:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:33:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [SAIC] done — signals=2
+2026-07-07 14:33:12 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:33:12 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:33:12 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-07 14:33:12 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:33:12 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:33:13 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [SNOW] done — signals=0
+  [UNH] done — signals=0
+2026-07-07 14:33:27 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22low%22%2C%22high%22%2C%22close%22%2C%22market_cap%22%2C%22source%22%2C%22ticker%22%2C%22open%22%2C%22volume%22 "HTTP/2 200 OK"
+2026-07-07 14:33:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-07 14:33:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [VERX] done — signals=0
+2026-07-07 14:33:34 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/scans "HTTP/2 201 Created"
+[db] Scan synced to Supabase
+
+============================================================
+DAILY SCAN — 2026-07-07
+============================================================
+VIX: 15.57 (LOW)
+Macro go: YES
+
+Tickers scanned: 25
+Eligible:        25
+Debate ready:    4
+
+PROCEED TO DEBATE: BAH, LMT, PANW, SAIC
+
+NO CONVERGENCE: AMD, BA, AXON, CRWD, CRM, CSWC, GD, GE, HON, LHX, JPM, LDOS, NOW, NOC, ORCL, NVDA, PLTR, RTX, SNOW, UNH, VERX
+============================================================
+Full packet: logs/predictions/scan_2026-07-07_pm_window.json
+[Tue Jul  7 02:33:35 PM CDT 2026] Scan complete. Starting debate...
+All work for this session is done. Summary:
+
+**Debated 4 tickers for `scan_2026-07-07_pm_window`** (BAH, LMT, PANW, SAIC — no duplicates found in Supabase for this scan_id, so this wasn't a retry):
+
+| Ticker | Score | Threshold | Outcome |
+|---|---|---|---|
+| BAH | 59/100 | 65 | SKIP — score_below_threshold (downtrend + exec departures, unaddressed bear risk) |
+| **LMT** | **65/100** | 65 | **ENTER** (marginal pass after Adversarial Reviewer downgrade) — 5% size, `[LEARNING]` push sent |
+| PANW | 36/100 | 65 | SKIP — score_below_threshold (overbought entry, insider selling) |
+| SAIC | 81/100 | 65 | SKIP — **risk_manager_veto** (score genuinely passed, but same-day duplicate of this morning's approved `pred_20260707_004`) |
+
+All logged to Supabase (`pred_20260707_009` through `_012`) with full debate narratives, `signals_fired` from the closed vocabulary, `approval_status` per the null/approved rule, and `skip_reason` reflecting the actual rejection cause. Scan `outcome_summary` updated, LMT appended to `logs/execution_queue.json`, push notification confirmed sent (`{"sent":2}`).
+
+Two things worth flagging:
+1. **Push notifications need `curl` with a browser-like User-Agent** — Python's `urllib` default UA got blocked by Cloudflare (HTTP 403, error 1010) even with a valid `NOTIFY_SECRET`. Worth updating `trading_system.md` Section 5 so future sessions don't waste a retry on this.
+2. **Found a recurring bug**: several past sessions (including today's earlier pre_market/midday runs) computed the cold-start threshold as `base − 5` instead of `base + 5`, contradicting both `trading_system.md` and the strategy doc. This made past trades easier to pass than intended — one logged ENTER (`pred_20260630_010`, LMT @ 58/100) would have actually *failed* under the correct threshold (~65 vs. the ~55 used). I used the correct direction today and saved a memory note; you may want to review those historical predictions before the learning period ends on 2026-08-21.
+[Tue Jul  7 02:45:19 PM CDT 2026] Debate session complete (attempt 1).
+[resolve] Running outcome resolution for 2026-07-07...
+
+[resolve] Done — 0 resolved, 8 not yet due, 0 errors
+[1/2] Scanning USASpending (last 3 days)...
+      8 contract candidates found
+[2/2] Sweeping EDGAR Form 4s (last 2 day(s), up to 60 filings)...
+      0 insider candidates found
+[auto-add] Checking ARLP (score=2)...
+[auto-add] ✗ ARLP blocked: ADV 355,615 below 500,000 minimum
+[auto-add] Checking BRQL (score=2)...
+[auto-add] ✗ BRQL blocked: ADV 18,761 below 500,000 minimum; Market cap $11M below $500M minimum; No earnings date found and no recent 8-K to infer from. Blocking conservatively — gap risk from untracked earnings event.
+
+=================================================================
+DISCOVERY RESULTS — 8 candidates (not on watchlist)
+=================================================================
+Review each before adding to watchlist.json.
+
+  ★★  ARLP
+       [usaspending] $200.6M across 1 contracts — Department of Veterans Affairs
+                IGF::OT::IGF THE DEPARTMENT OF VETERANS AFFAIRS LOAN GUARANTY SERVICE ADMINISTER
+
+  ★★  BRQL
+       [usaspending] $141.2M across 1 contracts — National Aeronautics and Space Administration
+                NASA-WIDE SPECIALIZED ENGINEERING, EVALUATION AND TEST SERVICES (NSEETS)
+
+  ★   WYY
+       [usaspending] $94.9M across 1 contracts — Department of Homeland Security
+                PROVIDE CELLULAR WIRELESS MANAGED SERVICES (CWMS) COAST GUARD WIDE VIA A TASK OR
+
+  ★   CXW
+       [usaspending] $94.7M across 1 contracts — Department of Homeland Security
+                THE PURPOSE OF THIS TASK ORDER IS FOR COMPREHENSIVE DETENTION AND TRANSPORTATION
+
+  ★   LUNR
+       [usaspending] $46.8M across 1 contracts — National Aeronautics and Space Administration
+                CLPS TASK ORDER CT-4 PAYLOADS AND RESEARCH INVESTIGATIONS ON THE SURFACE OF THE 
+
+  ★   MMS
+       [usaspending] $39.4M across 1 contracts — Department of Energy
+                INFORMATION TECHNOLOGY SUPPORT SERVICES 2 (ITSS2): THE PURPOSE OF THE ITSS2 CONT
+
+  ★   PPLI
+       [usaspending] $10.4M across 1 contracts — Department of Energy
+                PROVIDE PROCUREMENT/CONTRACT SPECIALIST SUPPORT SERVICES THROUGH PROFESSIONAL AN
+
+  ★   NTIP
+       [usaspending] $10.2M across 1 contracts — Department of Veterans Affairs
+                NATIONWIDE TELERADIOLOGY SUPPORT SERVICES FOR NTP PROGRAM - EO 143928
+
+Next: run universe_check for candidates you want to evaluate.
+  .venv/bin/python system/data/universe_check.py --ticker <TICKER>
+[Wed Jul  8 08:00:10 AM CDT 2026] Starting pre_market scan...
+2026-07-08 08:00:33 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/macro_history?on_conflict=date "HTTP/2 201 Created"
+2026-07-08 08:00:56 INFO __main__: Scanning 25 tickers in parallel (up to 3 workers)...
+Running daily scan for: AMD, AXON, BA, BAH, CRM, CRWD, CSWC, GD, GE, HON, JPM, LDOS, LHX, LMT, NOC, NOW, NVDA, ORCL, PANW, PLTR, RTX, SAIC, SNOW, UNH, VERX
+  Scanning 25 tickers in parallel (up to 3 workers)...
+2026-07-08 08:00:58 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:00:58 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:00:59 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 08:01:02 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:01:02 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:01:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:01:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:01:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 08:01:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [BA] done — signals=1
+  [AMD] done — signals=0
+  [AXON] done — signals=0
+2026-07-08 08:01:40 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:01:40 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:01:40 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:01:40 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:01:40 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 08:01:40 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 08:01:47 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:01:47 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:01:48 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [BAH] done — signals=2
+  [CRWD] done — signals=0
+2026-07-08 08:02:14 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:02:15 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:02:15 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [CRM] done — signals=0
+2026-07-08 08:02:19 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:02:19 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:02:20 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 08:02:31 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:02:31 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:02:31 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [CSWC] done — signals=0
+2026-07-08 08:02:50 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:02:50 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+  [GD] done — signals=0
+2026-07-08 08:02:50 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [GE] done — signals=0
+2026-07-08 08:03:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:03:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:03:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:03:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:03:05 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 08:03:05 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [HON] done — signals=1
+2026-07-08 08:03:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:03:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:03:29 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [LDOS] done — signals=0
+  [JPM] done — signals=0
+2026-07-08 08:03:43 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:03:43 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:03:44 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 08:03:48 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:03:49 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:03:49 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [LHX] done — signals=0
+2026-07-08 08:04:11 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:04:11 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:04:12 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NOC] done — signals=0
+  [LMT] done — signals=2
+2026-07-08 08:04:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:04:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:04:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 08:04:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:04:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:04:29 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NOW] done — signals=0
+2026-07-08 08:04:47 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:04:47 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:04:47 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NVDA] done — signals=0
+  [ORCL] done — signals=0
+2026-07-08 08:05:00 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:05:00 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:05:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 08:05:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:05:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:05:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [PANW] done — signals=2
+2026-07-08 08:05:32 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:05:32 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:05:33 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [PLTR] done — signals=1
+  [RTX] done — signals=0
+2026-07-08 08:05:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:05:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:05:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:05:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:05:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 08:05:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [SAIC] done — signals=2
+  [UNH] done — signals=0
+  [SNOW] done — signals=0
+2026-07-08 08:06:26 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22high%22%2C%22open%22%2C%22volume%22%2C%22market_cap%22%2C%22date%22%2C%22close%22%2C%22low%22%2C%22ticker%22%2C%22source%22 "HTTP/2 200 OK"
+2026-07-08 08:06:26 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 201 Created"
+2026-07-08 08:06:26 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [VERX] done — signals=0
+2026-07-08 08:06:26 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/scans "HTTP/2 201 Created"
+[db] Scan synced to Supabase
+
+============================================================
+DAILY SCAN — 2026-07-08
+============================================================
+VIX: 16.13 (NORMAL)
+Macro go: YES
+
+Tickers scanned: 25
+Eligible:        24
+Debate ready:    4
+
+PROCEED TO DEBATE: BAH, LMT, PANW, SAIC
+
+INELIGIBLE:
+  VERX: Market cap $0M below $500M minimum
+
+NO CONVERGENCE: BA, AMD, AXON, CRWD, CRM, CSWC, GD, GE, HON, LDOS, JPM, LHX, NOC, NOW, NVDA, ORCL, PLTR, RTX, UNH, SNOW
+============================================================
+Full packet: logs/predictions/scan_2026-07-08_pre_market.json
+[Wed Jul  8 08:06:27 AM CDT 2026] Scan complete. Starting debate...
+**Debate session complete — all 4 candidates SKIP, nothing queued for execution.**
+
+| Ticker | Score | Threshold | Verdict |
+|---|---|---|---|
+| BAH | 50/100 | 70 | SKIP — accelerating downtrend contradicts strong gov-contract news |
+| LMT | 40/100 | 70 | SKIP — no near-term catalyst; largest contract figure ($48B DOE) had a blank/unverifiable description |
+| PANW | 32/100 | 70 | SKIP — overbought (RSI 71) chase with no fresh catalyst |
+| SAIC | 56/100 | 70 | SKIP — strongest setup of the four, but catalyst (contracts dated 6–7 days ago) fell just outside the 5-day Gate A window |
+
+Effective threshold = 65 (VIX normal) + 5 (cold start — 0 resolved+executed predictions, and every signal combo has <10 resolved outcomes) = **70**.
+
+Logged `pred_20260708_001`–`004` to Supabase with full debate narratives, `approval_status: null`, `skip_reason: 'score_below_threshold'`. Updated `scans.outcome_summary`. No ENTER decisions → no push notifications, no `execution_queue.json` entries needed.
+
+**Flagging a live bug:** I confirmed `system/data/debate.py:39-41` still has the cold-start threshold bug your memory noted — it computes `base - 5` instead of `base + 5`, meaning if that automated script is what actually runs cloud/cron sessions, every run has been using threshold 60 instead of 70 during cold start (too permissive). I did the math correctly by hand for this session but didn't touch the file since you hadn't asked — want me to fix it?
+[Wed Jul  8 08:14:47 AM CDT 2026] Debate session complete (attempt 1).
+[Wed Jul  8 12:30:17 PM CDT 2026] Starting midday scan...
+2026-07-08 12:30:24 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/macro_history?on_conflict=date "HTTP/2 200 OK"
+2026-07-08 12:30:47 INFO __main__: Scanning 25 tickers in parallel (up to 3 workers)...
+Running daily scan for: AMD, AXON, BA, BAH, CRM, CRWD, CSWC, GD, GE, HON, JPM, LDOS, LHX, LMT, NOC, NOW, NVDA, ORCL, PANW, PLTR, RTX, SAIC, SNOW, UNH, VERX
+  Scanning 25 tickers in parallel (up to 3 workers)...
+2026-07-08 12:30:48 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:30:49 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:30:49 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 12:30:49 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:30:50 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:30:50 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 12:30:56 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:30:56 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:30:56 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [BA] done — signals=1
+  [AMD] done — signals=0
+  [AXON] done — signals=0
+2026-07-08 12:31:30 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:31:30 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:31:30 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 12:31:31 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:31:31 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:31:31 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 12:31:40 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:31:40 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:31:40 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [CRM] done — signals=0
+  [BAH] done — signals=2
+2026-07-08 12:32:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:32:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:32:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [CRWD] done — signals=0
+2026-07-08 12:32:12 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:32:12 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:32:13 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:32:13 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 12:32:13 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:32:13 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [GD] done — signals=0
+2026-07-08 12:32:42 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:32:42 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:32:42 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [CSWC] done — signals=0
+  [GE] done — signals=0
+2026-07-08 12:32:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:32:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:32:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 12:32:49 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:32:49 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:32:50 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [HON] done — signals=1
+  [LDOS] done — signals=0
+2026-07-08 12:33:17 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:33:17 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:33:17 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 12:33:20 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:33:20 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:33:20 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [JPM] done — signals=0
+2026-07-08 12:33:24 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:33:24 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:33:24 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [LHX] done — signals=0
+  [LMT] done — signals=2
+2026-07-08 12:33:53 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:33:54 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:33:54 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 12:33:54 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:33:54 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:33:55 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NOC] done — signals=0
+2026-07-08 12:34:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:34:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:34:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NVDA] done — signals=0
+  [NOW] done — signals=0
+2026-07-08 12:34:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:34:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:34:28 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [ORCL] done — signals=0
+2026-07-08 12:34:36 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:34:36 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:34:36 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 12:34:37 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:34:37 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:34:37 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [PLTR] done — signals=1
+2026-07-08 12:35:06 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:35:06 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:35:07 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [RTX] done — signals=0
+  [PANW] done — signals=2
+2026-07-08 12:35:10 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:35:10 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:35:10 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 12:35:11 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:35:12 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:35:12 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [SAIC] done — signals=2
+2026-07-08 12:35:39 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22close%22%2C%22volume%22%2C%22open%22%2C%22low%22%2C%22ticker%22%2C%22high%22%2C%22market_cap%22 "HTTP/2 201 Created"
+2026-07-08 12:35:39 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 12:35:39 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [SNOW] done — signals=0
+  [UNH] done — signals=0
+  [VERX] done — signals=0
+2026-07-08 12:36:10 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/scans "HTTP/2 201 Created"
+[db] Scan synced to Supabase
+
+============================================================
+DAILY SCAN — 2026-07-08
+============================================================
+VIX: 16.13 (NORMAL)
+Macro go: YES
+
+Tickers scanned: 25
+Eligible:        25
+Debate ready:    4
+
+PROCEED TO DEBATE: BAH, LMT, PANW, SAIC
+
+NO CONVERGENCE: BA, AMD, AXON, CRM, CRWD, GD, CSWC, GE, HON, LDOS, JPM, LHX, NOC, NVDA, NOW, ORCL, PLTR, RTX, SNOW, UNH, VERX
+============================================================
+Full packet: logs/predictions/scan_2026-07-08_midday.json
+[Wed Jul  8 12:36:11 PM CDT 2026] Scan complete. Starting debate...
+You've hit your session limit · resets 1pm (America/Chicago)
+[Wed Jul  8 12:36:13 PM CDT 2026] Debate attempt 1 failed (likely session limit or transient error) — retrying in 1200s...
+You've hit your session limit · resets 1pm (America/Chicago)
+[Wed Jul  8 12:56:15 PM CDT 2026] Debate attempt 2 failed (likely session limit or transient error) — retrying in 1200s...
+**Midday scan debate complete — all four candidates SKIP, no trades queued.**
+
+| Ticker | Score | Effective threshold | Outcome |
+|---|---|---|---|
+| BAH | 54/100 | 70 | SKIP — sustained downtrend, unaddressed governance risk (2 exec departures) |
+| LMT | 68/100 | 70 | SKIP — strong NASA Orion award, but 9 days old missed the 5-day catalyst gate |
+| PANW | 35/100 | 70 | SKIP — violent 2-day reversal after a parabolic run, no fresh corroborating catalyst, unanswered momentum-exhaustion risk |
+| SAIC | 68/100 | 70 | SKIP — $1.69B+ fresh contract cluster, but 6–7 days old missed the 5-day catalyst gate |
+
+Threshold used effective 70 (VIX-normal base 65 + 5 cold-start adjustment, per the corrected direction noted in memory — not the buggy `debate.py` subtraction). No prior predictions existed for `scan_2026-07-08_midday`, so this wasn't a partial retry — all four were fresh debates.
+
+Since nothing cleared threshold, there were no ENTER decisions: no push notifications sent, `logs/execution_queue.json` left untouched, and `approval_status` is `null` on all four (not `'rejected'`). Scan record's `outcome_summary` updated in Supabase. LMT and SAIC were close calls (68 vs 70) — both failed specifically because their material catalysts were 6–9 days old rather than within the stricter 5-day near-term-catalyst gate.
+[Wed Jul  8 01:25:10 PM CDT 2026] Debate session complete (attempt 3).
+[Wed Jul  8 02:30:01 PM CDT 2026] Starting pm_window scan...
+2026-07-08 14:30:16 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/macro_history?on_conflict=date "HTTP/2 200 OK"
+2026-07-08 14:30:34 INFO __main__: Scanning 25 tickers in parallel (up to 3 workers)...
+Running daily scan for: AMD, AXON, BA, BAH, CRM, CRWD, CSWC, GD, GE, HON, JPM, LDOS, LHX, LMT, NOC, NOW, NVDA, ORCL, PANW, PLTR, RTX, SAIC, SNOW, UNH, VERX
+  Scanning 25 tickers in parallel (up to 3 workers)...
+2026-07-08 14:30:43 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:30:43 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:30:43 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:30:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:30:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:30:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:30:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:30:45 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:30:46 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [AMD] done — signals=0
+2026-07-08 14:30:51 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:30:51 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:30:52 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [AXON] done — signals=0
+  [BA] done — signals=1
+  [BAH] done — signals=2
+2026-07-08 14:31:02 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:02 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:03 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:31:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:31:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:05 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [CRWD] done — signals=0
+  [CSWC] done — signals=0
+  [CRM] done — signals=0
+2026-07-08 14:31:15 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:15 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:15 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:31:16 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:16 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:17 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:31:20 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:20 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:20 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [HON] done — signals=1
+  [GE] done — signals=0
+  [GD] done — signals=0
+2026-07-08 14:31:29 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:29 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:29 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:29 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:29 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:31:30 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:31:34 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:34 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:34 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [LHX] done — signals=0
+  [JPM] done — signals=0
+  [LDOS] done — signals=0
+2026-07-08 14:31:43 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:44 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:44 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:31:49 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:50 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:50 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [LMT] done — signals=2
+2026-07-08 14:31:52 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:31:52 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:31:52 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NOC] done — signals=0
+  [NOW] done — signals=0
+2026-07-08 14:32:00 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:32:00 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:32:00 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:32:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:32:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:32:04 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [NVDA] done — signals=0
+2026-07-08 14:32:08 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:32:08 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:32:08 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [PANW] done — signals=2
+  [ORCL] done — signals=0
+2026-07-08 14:32:16 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:32:16 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:32:16 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [PLTR] done — signals=1
+2026-07-08 14:32:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:32:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:32:25 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:32:26 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:32:26 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:32:26 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [RTX] done — signals=0
+  [SAIC] done — signals=2
+2026-07-08 14:32:38 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:32:38 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:32:38 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:32:39 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:32:39 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:32:39 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+2026-07-08 14:32:44 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/price_history?on_conflict=ticker%2Cdate&columns=%22date%22%2C%22source%22%2C%22low%22%2C%22market_cap%22%2C%22open%22%2C%22high%22%2C%22close%22%2C%22volume%22%2C%22ticker%22 "HTTP/2 200 OK"
+2026-07-08 14:32:44 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/short_interest_history?on_conflict=ticker%2Cdate "HTTP/2 200 OK"
+2026-07-08 14:32:44 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/rpc/wash_sale_check "HTTP/2 200 OK"
+  [SNOW] done — signals=0
+  [VERX] done — signals=0
+  [UNH] done — signals=0
+2026-07-08 14:32:53 INFO httpx: HTTP Request: POST https://ypokkuswzbzgmdzcvksf.supabase.co/rest/v1/scans "HTTP/2 201 Created"
+[db] Scan synced to Supabase
+
+============================================================
+DAILY SCAN — 2026-07-08
+============================================================
+VIX: 16.13 (NORMAL)
+Macro go: YES
+
+Tickers scanned: 25
+Eligible:        25
+Debate ready:    4
+
+PROCEED TO DEBATE: BAH, LMT, PANW, SAIC
+
+NO CONVERGENCE: AMD, AXON, BA, CRWD, CSWC, CRM, HON, GE, GD, LHX, JPM, LDOS, NOC, NOW, NVDA, ORCL, PLTR, RTX, SNOW, VERX, UNH
+============================================================
+Full packet: logs/predictions/scan_2026-07-08_pm_window.json
+[Wed Jul  8 02:32:54 PM CDT 2026] Scan complete. Starting debate...
+All 4 predictions correctly logged with no duplication, and `execution_queue.json` is correctly left untouched since none of today's pm_window candidates passed the confidence threshold — no ENTER decisions require queuing or push notifications this session.
+
+**Summary — pm_window scan (2026-07-08):**
+
+| Ticker | Score | Threshold | Result |
+|---|---|---|---|
+| BAH | 54/100 | 70 | SKIP — downtrend + unanswered governance/recompete risk |
+| LMT | 67/100 | 70 | SKIP — Orion catalyst 9d old (misses Gate A), 3-session fade since award |
+| PANW | 34/100 | 70 | SKIP — accelerating distribution after parabolic run, bull conceded no near-term catalyst |
+| SAIC | 68/100 | 70 | SKIP — contract cluster 6-7d old (misses Gate A), otherwise cleanest setup of the four |
+
+All 4 logged to Supabase (`pred_20260708_009`–`012`) with full debate narratives, `approval_status: null`, and specific `skip_reason: score_below_threshold` (none qualified for the `learning_period` override since all failed on score, not on execution-gating). Scan `outcome_summary` updated. No ENTER decisions, so no push notifications and no changes to `execution_queue.json`.
+
+One item worth flagging: I confirmed no prior `scan_2026-07-08_pm_window` predictions existed before this run, so this was a fresh run, not a retry — the duplicate-avoidance check in your prompt didn't need to skip anything.
+[Wed Jul  8 02:39:52 PM CDT 2026] Debate session complete (attempt 1).
+[resolve] Running outcome resolution for 2026-07-08...
+
+[resolve] Done — 0 resolved, 8 not yet due, 0 errors
