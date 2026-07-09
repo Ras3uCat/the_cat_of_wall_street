@@ -18,6 +18,7 @@
 
 # OpenNext / Cloudflare build output
 /.open-next/
+/.wrangler/
 
 # misc
 .DS_Store

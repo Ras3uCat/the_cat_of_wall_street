@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Prediction } from '@/lib/types'
+import { fetchPriceHistory, computeHypotheticalPnl } from '@/lib/hypotheticalPnl'
 
 const STATUS_STYLE: Record<string, string> = {
   pending:  'border-brand-gold/60    text-brand-gold',
@@ -23,6 +24,7 @@ export default async function PredictionsPage({ searchParams }: { searchParams: 
 
   const predictions = (data ?? []) as Prediction[]
   const totalPages  = Math.ceil((count ?? 0) / PAGE_SIZE)
+  const priceHistory = await fetchPriceHistory(predictions.map(p => p.ticker))
 
   return (
     <div className="p-4 space-y-3 max-w-[480px] mx-auto pb-8">
@@ -42,6 +44,7 @@ export default async function PredictionsPage({ searchParams }: { searchParams: 
 
       {predictions.map(p => {
         const afterTax = p.predicted_move_pct != null ? p.predicted_move_pct * 0.70 : null
+        const { pnlPct } = computeHypotheticalPnl(p, priceHistory)
         return (
           <Link key={p.id} href={`/predictions/${p.id}`} className="block brand-card p-4 space-y-2.5">
             <div className="flex items-start justify-between gap-2">
@@ -76,6 +79,11 @@ export default async function PredictionsPage({ searchParams }: { searchParams: 
               {afterTax != null && (
                 <span className={`font-orbitron text-[10px] ${afterTax >= 0 ? 'text-brand-cyan' : 'text-brand-magenta'}`}>
                   {afterTax >= 0 ? '+' : ''}{afterTax.toFixed(1)}%
+                </span>
+              )}
+              {pnlPct != null && (
+                <span className={`font-space text-[10px] tracking-wider ${pnlPct >= 0 ? 'text-brand-cyan' : 'text-brand-magenta'}`}>
+                  IF EXEC <span className="font-orbitron">{pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(1)}%</span>
                 </span>
               )}
             </div>

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { Prediction } from '@/lib/types'
 import ApproveButtons from '@/components/ApproveButtons'
+import { fetchPriceHistory, computeHypotheticalPnl } from '@/lib/hypotheticalPnl'
 
 const COMPONENT_LABELS: Record<string, string> = {
   convergence: 'CONVERGENCE',
@@ -37,6 +38,8 @@ export default async function PredictionDetail({ params }: { params: Promise<{ i
   const p = data as Prediction
 
   const afterTax = p.predicted_move_pct != null ? p.predicted_move_pct * 0.70 : null
+  const priceHistory = await fetchPriceHistory([p.ticker])
+  const { entryPrice, currentPrice, currentPriceDate, pnlPct } = computeHypotheticalPnl(p, priceHistory)
   const components = [
     { key: 'convergence', val: p.confidence_component_convergence },
     { key: 'debate',      val: p.confidence_component_debate      },
@@ -110,6 +113,31 @@ export default async function PredictionDetail({ params }: { params: Promise<{ i
           )}
         </div>
       </div>
+
+      {pnlPct != null && (
+        <div className="brand-card p-4 space-y-3">
+          <h2 className="section-label">If Executed</h2>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <div className="section-label mb-1">Entry Ref</div>
+              <div className="font-orbitron text-xs text-brand-white tracking-wider">${entryPrice?.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="section-label mb-1">Current</div>
+              <div className="font-orbitron text-xs text-brand-white tracking-wider">${currentPrice?.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="section-label mb-1">Current +/-</div>
+              <div className={`font-orbitron text-xs tracking-wider ${pnlPct >= 0 ? 'text-brand-cyan' : 'text-brand-magenta'}`}>
+                {pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(1)}%
+              </div>
+            </div>
+          </div>
+          <p className="font-space text-[9px] text-brand-white/25 tracking-wider">
+            {p.entry_price != null ? 'ENTRY = ACTUAL FILL' : 'ENTRY = CLOSE ON SCAN DATE'} · PRICED AS OF {currentPriceDate}
+          </p>
+        </div>
+      )}
 
       {components.length > 0 && (
         <div className="brand-card p-4 space-y-3">
