@@ -1,5 +1,4 @@
 export const dynamic = 'force-dynamic'
-import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Scan } from '@/lib/types'
 
