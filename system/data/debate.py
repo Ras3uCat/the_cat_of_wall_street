@@ -33,12 +33,12 @@ LEARNING_PERIOD_END = date(2026, 8, 20)
 
 # VIX regime → base confidence threshold (per system prompt [60/65/72])
 _THRESHOLDS = {"low": 60, "normal": 65, "elevated": 72, "high": 72}
-COLD_START_THRESHOLD_REDUCTION = 5
+COLD_START_THRESHOLD_INCREASE = 5
 
 
 def _effective_threshold(vix_regime: str, cold_start: bool) -> int:
     base = _THRESHOLDS.get(vix_regime or "normal", 65)
-    return base - (COLD_START_THRESHOLD_REDUCTION if cold_start else 0)
+    return base + (COLD_START_THRESHOLD_INCREASE if cold_start else 0)
 
 
 def _is_cold_start() -> bool:
