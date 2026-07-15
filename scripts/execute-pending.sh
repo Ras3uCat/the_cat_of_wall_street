@@ -61,9 +61,13 @@ For each pending order:
    - account_number MUST be 426488037 (Agentic account ONLY)
    - order_type: market, time_in_force: gfd
 5. After fill confirmed:
-   a. Update logs/execution_queue.json: set executed=true, executed_at=<ISO timestamp>
-      (read existing file, update matching entry by id, write back)
-   b. Run: python system/data/execute.py --mark-executed <prediction_id>
+   a. Run: python system/data/queue_io.py --mark-executed <prediction_id> <ISO timestamp>
+      Do NOT edit logs/execution_queue.json directly — this script takes an flock on
+      logs/execution_queue.lock, the same lock scan-and-debate.sh's reconcile_queue.py
+      uses, so a concurrent debate-session queue rewrite can't interleave with this update.
+   b. Run: python system/data/execute.py --mark-executed <prediction_id> <fill_price> <position_size_pct>
+      (all three args required — position_size_pct is the queue entry's original sizing,
+      fill_price is the actual confirmed fill price from step 4)
    c. Send push notification confirming fill: ticker, fill price, shares
 6. If risk rules block an order: send push notification explaining which rule blocked it.
    Do NOT mark as executed — leave it in the queue for review.

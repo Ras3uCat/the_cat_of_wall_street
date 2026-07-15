@@ -1,7 +1,7 @@
 # Gap Analysis — AI Trading System Strategy
 
 **Source:** Review of `ai-trading-system-strategy.md`, June 2026  
-**Last updated:** 2026-07-06 — GAP-63/64/65/66 added and resolved (Section 11 MCP tool-name drift, PDT→settled-funds correction, price-staleness bound, signal_categories_count recompute)  
+**Last updated:** 2026-07-15 — GAP-67 through GAP-72 added and resolved (execution queue revalidation moved to code, VIX threshold/cold-start doc gap, execute.py arg count, strategy doc calibration inconsistency, queue file locking, reconciliation reliability)  
 **Status:** Active — this file holds only OPEN gaps. Resolved gaps are archived in `gap-analysis-resolved.md` with full write-ups; the Resolution Tracking table below covers every gap (open and resolved) in one line each.
 
 Each gap below links to a future `01_active/` feature or is resolved in the strategy doc.
@@ -36,7 +36,6 @@ Section 8's monthly report tracks win rate by *signal combo* and *confidence ban
 No fix applied yet — flagged for later once sufficient prediction volume exists.
 
 ---
-
 
 ## Resolution Tracking
 
@@ -108,3 +107,9 @@ No fix applied yet — flagged for later once sufficient prediction volume exist
 | GAP-64 PDT enforced on PDT-exempt account | **Resolved (2026-07-06)** — replaced with settled-funds model (`unsettled_funds` field, `get_unsettled_funds()`, `_check_settled_funds()`) across config.py, account.py, universe_check.py, trading_system.md, execute-pending.sh, README.md |
 | GAP-65 No staleness bound on price fallback lookup | **Resolved (2026-07-06)** — `PRICE_STALENESS_MAX_DAYS=5` added; `db.get_close_price` and `resolve.py._fetch_close` both reject matches further than that from the target date |
 | GAP-66 `signal_categories_count` not recomputed after filtering | **Resolved (2026-07-06)** — `debate.py` now derives it from `len(signals_fired)` post-filter, not the LLM's raw count |
+| GAP-67 Execution queue never revalidated — pending entries stack indefinitely | **Resolved (2026-07-15)** — daily update-in-place/remove protocol added to trading_system.md Section 5 Step 4 + scan-and-debate.sh, applies to every session type; stale SAIC/LMT queue entries manually cleaned up as a one-time fix |
+| GAP-68 VIX threshold table / cold-start rule undocumented in mandatory-read trading_system.md | **Resolved (2026-07-15)** — real table + rule added to Role 7, replacing blank `[60/65/72]`/`[yes/no]` placeholders |
+| GAP-69 Strategy doc cold-start combo threshold inconsistency (30 vs. 10) | **Resolved (2026-07-15)** — unified to 30 per Ryan's decision; per-combo variant documented as unimplemented |
+| GAP-70 `execute-pending.sh` calls `--mark-executed` with wrong arg count | **Resolved (2026-07-15)** — all 3 required args (`prediction_id fill_price position_size_pct`) now specified |
+| GAP-71 No locking between scan-and-debate.sh retries and execute-pending.sh's fixed timer | **Resolved (2026-07-15)** — `queue_io.py` flock on `logs/execution_queue.lock` shared by both scripts' write paths |
+| GAP-72 Section 5 Step 4 queue reconciliation didn't reliably self-execute (prose instructions skipped on day 1 in production) | **Resolved (2026-07-15)** — moved to deterministic `reconcile_queue.py`, called automatically by scan-and-debate.sh; verified against real 2026-07-15 pm_window data |

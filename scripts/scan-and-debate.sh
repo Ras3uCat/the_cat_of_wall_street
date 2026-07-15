@@ -64,21 +64,12 @@ Your tasks:
    - debate_narrative: the full reasoning from the 7-agent debate
 5. Send push notifications for any ENTER decisions
 6. Update outcome_summary in the scan record in Supabase
-7. For any ENTER decision: append the order to logs/execution_queue.json using this format:
-   {
-     \"id\": \"<prediction_id>\",
-     \"ticker\": \"<TICKER>\",
-     \"direction\": \"<long|short>\",
-     \"position_size_pct\": <float>,
-     \"confidence_score\": <int>,
-     \"entry_price\": <float or null>,
-     \"scan_date\": \"$TODAY\",
-     \"session_type\": \"$SESSION_TYPE\",
-     \"queued_at\": \"<ISO timestamp>\",
-     \"executed\": false
-   }
-   Read the existing file first, append to the array, then write back.
-   Create the file with an empty array [] if it doesn't exist yet.
+
+Do NOT touch logs/execution_queue.json yourself — a separate deterministic step
+(reconcile_queue.py, run automatically after this debate session by this same script)
+handles all queue updates/removals/appends per trading_system.md Section 5 Step 4. It reads
+today's logged predictions from Supabase directly, so no manual queue bookkeeping is needed
+here regardless of ENTER/SKIP outcome.
 
 Learning period: if today is before 2026-08-21, this blocks EXECUTION only, not the debate
 outcome. For a ticker that would otherwise be an approved ENTER (score passed, Risk Manager
@@ -105,3 +96,11 @@ while true; do
   sleep "$RETRY_DELAY_SECONDS"
   attempt=$((attempt + 1))
 done
+
+# Step 3: deterministic execution-queue reconciliation (trading_system.md Section 5 Step 4).
+# Runs as plain Python, not LLM-followed prose — GAP-67/72 found the queue file was left
+# untouched when this was a natural-language instruction buried in the debate prompt.
+# Takes an flock on logs/execution_queue.lock (queue_io.py), same lock execute-pending.sh
+# uses, so the two scripts never read/write the queue file concurrently (GAP-71).
+echo "[$(date)] Reconciling execution queue..."
+"$PYTHON" system/data/reconcile_queue.py --scan-id "$SCAN_ID" --scan-file "$SCAN_FILE"

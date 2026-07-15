@@ -175,7 +175,7 @@ Components sum to 100. All five components must be scored independently — no s
 | Elevated (20–25) | 72 / 100 |
 | High (> 25) | No new entries (macro filter blocks regardless of score) |
 
-**Cold Start:** For the first 30 predictions, or when a specific signal combination has fewer than 10 resolved outcomes in the prediction log, the record is flagged `cold_start: true` and thresholds are raised by 5 points. This compensates for unproven signal weights being treated as neutral rather than calibrated.
+**Cold Start:** For the first 30 predictions, or when a specific signal combination has fewer than 30 resolved outcomes in the prediction log, the record is flagged `cold_start: true` and thresholds are raised by 5 points — the same insufficient-sample-size driver as Component 4's neutral-default rule above, just applied per-combo instead of system-wide. This compensates for unproven signal weights being treated as neutral rather than calibrated. (Not yet implemented: the only live cold-start check, `debate.py::_is_cold_start()`, uses the system-wide 30-prediction count only — the per-combo variant is a future refinement, not current behavior.)
 
 **Why this matters:** The confidence score is the single gate between a good debate and actual capital at risk. It prevents the system from trading on a marginally-passing thesis in unfavorable conditions, and it creates a trackable history of whether high-confidence calls actually outperform low-confidence ones over time.
 

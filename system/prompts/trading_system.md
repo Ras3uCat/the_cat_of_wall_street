@@ -244,7 +244,7 @@ What would make me wrong: [Under what conditions would the bull case actually pl
 4. **Correlation**: Does this position likely move with existing holdings? Stocks in the same sector in the same regime often move together.
 5. **Overnight/weekend exposure**: Is entry near end of week? Would this position be held over a weekend? Size down or flag.
 6. **Settled funds**: The Agentic account is a cash account — no PDT limit. If `unsettled_funds` in account state is nonzero (a same-day sale hasn't settled yet), confirm settled buying power (buying_power − unsettled_funds) still covers this trade's notional.
-7. **Duplicate same-day position**: Was this ticker already approved and queued earlier in today's session? If so → veto on duplication grounds regardless of how strong this debate's case is.
+7. **Duplicate position (same-day or already queued)**: Was this ticker already approved and queued earlier in today's session, OR does it already have an unexecuted entry in `logs/execution_queue.json` from a prior session? If so → veto on duplication grounds regardless of how strong this debate's case is; today's result instead refreshes the existing queue entry per Section 5 Step 4 rather than adding a second one.
 
 **Output format:**
 ```
@@ -278,6 +278,17 @@ Debate verdict: Bull / Bear / Inconclusive
 Reasoning: [2–3 sentences on which debater made the stronger case and why]
 ```
 
+**VIX regime → minimum score to execute:**
+
+| VIX Regime | Minimum Score |
+|---|---|
+| Low (< 16) | 60 / 100 |
+| Normal (16–20) | 65 / 100 |
+| Elevated (20–25) | 72 / 100 |
+| High (> 25) | No new entries — macro filter blocks regardless of score |
+
+**Cold start rule:** if fewer than 30 predictions in Supabase have both `resolved = true` and `executed = true`, flag `cold_start: true` and add 5 points to the regime threshold above. Add, never subtract — this makes entry *harder* during the period when signal weights are unproven, not easier. (The strategy doc also mentions a narrower per-signal-combo cold-start variant for Component 4's historical-accuracy default; that clause is not implemented anywhere in the pipeline as of 2026-07-15 and should not be treated as an additional threshold adjustment — Component 4's own "insufficient_data — using default 8 pts" fallback already covers under-sampled combos.)
+
 **Step 2 — Confidence score calculation (show all work):**
 ```
 CONFIDENCE SCORE — [TICKER]
@@ -310,8 +321,8 @@ Component 5: Risk Manager Rating (0–10)
   Subtotal: [X]/10
 
 TOTAL CONFIDENCE SCORE: [sum]/100
-VIX regime threshold: [60/65/72]
-Cold start adjustment (+5): [yes/no]
+VIX regime threshold: [look up in table below]
+Cold start adjustment (+5): [yes/no — see rule below]
 Effective threshold: [N]
 SCORE PASSES: YES / NO
 
@@ -539,6 +550,16 @@ urllib.request.urlopen(req, timeout=10)
 print('Notification sent.')
 "
 ```
+
+**Step 4 — Maintain the execution queue (every session — `pre_market`, `midday`, `pm_window`):**
+
+`logs/execution_queue.json` holds unexecuted ENTER decisions. An entry sitting there for days represents stale data — the price, signals, and thesis it was built on are no longer current, so it must never be executed as-is.
+
+This is handled by code, not by following prose instructions in this section: `system/data/reconcile_queue.py` runs automatically right after every debate session (`scripts/scan-and-debate.sh` calls it unconditionally, regardless of session type — `run_daily_scan.py` recomputes `proceed_to_debate` against the full watchlist identically every session, so there is no "narrower" session to exempt). Do not manually read, edit, or write `logs/execution_queue.json` during a debate session — logging predictions to Supabase per Steps 1–3 above is sufficient; the reconciliation script reads those rows back out itself. (An earlier version of this step asked the live agent to do this JSON read/modify/write by hand each session; it proved unreliable in production — correct SKIP verdicts were logged to Supabase but the queue file was left untouched — so it was moved into code. See GAP-67/72 in `planning/findings/gap-analysis-resolved.md`.)
+
+What the script does, for reference: for every ticker with an `executed: false` queue entry, if that ticker reappears in today's `proceed_to_debate` candidates and today's result is an approved ENTER, the entry is replaced in place (new `entry_price`, `confidence_score`, `scan_date`, `queued_at`) — never a second entry for the same ticker, even if the one being replaced was queued by an earlier session today. If the ticker doesn't reappear in today's candidates, or reappears but SKIPs, the entry is removed rather than left stale. This keeps every queue entry's `scan_date` equal to the day it was last confirmed, which matters once execution resumes 2026-08-21 (see Section 11 — `execute-pending.sh` only executes entries where `scan_date` equals today).
+
+`execute-pending.sh` similarly must never edit `logs/execution_queue.json` by hand — it marks fills via `python system/data/queue_io.py --mark-executed <id> <timestamp>`, which takes the same file lock (`logs/execution_queue.lock`) `reconcile_queue.py` uses, so a debate session's queue rewrite and an execution session's fill-marking can never interleave and corrupt each other.
 
 ---
 

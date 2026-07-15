@@ -723,3 +723,57 @@ Both the Supabase absolute-date lookup (`db.get_close_price`, added for GAP-59) 
 
 ---
 
+### GAP-67: `logs/execution_queue.json` had no daily revalidation — pending ENTER entries stacked indefinitely across sessions  ← NEW / HIGH
+
+Nothing in `trading_system.md` or `scripts/scan-and-debate.sh` ever revisited an existing `executed: false` queue entry after it was written. Each debate session that produced an ENTER simply appended a new entry, even for a ticker that already had one pending from a prior day. Discovered via a live incident: SAIC accumulated 5 separate unexecuted entries between 2026-06-29 and 2026-07-10 (8%, 10%, 8%, 6%, 5% = 37% aggregate against a 5–6% portfolio heat cap), all re-debates of the same recurring gov-contract catalyst as the data refreshed. Each entry's own notes flagged the stacking and said "consolidate at next execution session" — but since execution is blocked for the entire 60-day learning period, there never is a "next execution session" to trigger cleanup, so the queue only grew. Two LMT entries (15 and 8 days stale respectively) showed the identical pattern, one of them with a 13-day hold explicitly sized to exit before a specific earnings date that had already partially elapsed by the time it was reviewed.
+
+A follow-up audit (2026-07-15) found the first fix attempt was itself based on a false premise: it restricted daily revalidation to `pre_market` sessions only, reasoning that `midday`/`pm_window` "only debate a narrower subset." That's not true — `run_daily_scan.py` recomputes `proceed_to_debate` against the full watchlist identically for every session type. Under the restricted version, a ticker queued ENTER at `pre_market` that a same-day `pm_window` re-debate downgraded to SKIP would never get removed, and `execute-pending.sh` (which executes every `executed: false` entry with `scan_date` equal to today) would still attempt to execute a trade a fresh debate had already rejected hours earlier, once real execution resumes 2026-08-21.
+
+**Fix:** Added `trading_system.md` Section 5 Step 4 ("Maintain the execution queue") specifying that every session — regardless of type — must, before writing new entries: (1) update any existing pending entry for a re-debated ticker in place rather than appending a duplicate, (2) remove pending entries for tickers that no longer clear signal convergence today or whose fresh re-debate result is SKIP, (3) never allow two unexecuted entries for the same ticker at once. Also extended Risk Manager Role 6 check 7 to cover cross-session duplicates, not just same-day. `scripts/scan-and-debate.sh` step 7 implements the identical logic in its inline `claude -p` prompt, unconditionally on session type.
+
+**Resolved (2026-07-15).** Manually consolidated the existing stale queue as a one-time cleanup (SAIC 5→1 entries, both stale LMT entries removed) since the fix is prospective only — it does not retroactively repair entries queued before this date.
+
+---
+
+### GAP-68: VIX-regime threshold table (60/65/72) and cold-start determination rule existed only in `ai-trading-system-strategy.md` and the non-production `debate.py` — never in `trading_system.md`, the mandatory session-start read  ← NEW / HIGH
+
+`trading_system.md`'s Role 7 confidence-score template had `VIX regime threshold: [60/65/72]` and `Cold start adjustment (+5): [yes/no]` as bare fill-in-the-blank placeholders, with no definition anywhere in the document of which VIX regime maps to which number, or how `cold_start` is determined. The actual numbers (VIX <16→60, 16–20→65, 20–25→72, >25→no new entries; cold_start when fewer than 30 resolved+executed predictions exist) were only defined in `ai-trading-system-strategy.md` §3.5 — a doc CLAUDE.md does not require reading every session — and implemented in `system/data/debate.py`, which GAP-60 already established is NOT the code path the production cron scripts actually invoke (`scan-and-debate.sh` drives a live Claude Code session against `trading_system.md` directly, bypassing `debate.py` entirely).
+
+Net effect: a session that reads only the mandatory doc (as instructed) had no textual source of truth for two numbers that gate every ENTER/SKIP decision, and had to invent, infer from past examples, or guess — a plausible root cause of the historical cold-start-direction bug ([[project-cold-start-threshold-bug]] memory), independent of `debate.py`'s own (separately fixed) sign error.
+
+**Resolved (2026-07-15):** Added the concrete VIX regime → threshold table and the cold-start rule (with its exact Supabase query condition) directly into `trading_system.md` Role 7, immediately before the confidence-score template that references them. The template placeholders now say "look up in table below" instead of bare numeric choices.
+
+---
+
+### GAP-70: `execute-pending.sh` instructed `execute.py --mark-executed <prediction_id>` with 1 of 3 required arguments  ← NEW / MEDIUM
+
+`system/data/execute.py`'s `--mark-executed` flag is declared with `nargs=3` (`PRED_ID FILL_PRICE SIZE_PCT`) — `mark_executed()` needs the fill price and position size to update Supabase. `scripts/execute-pending.sh`'s inline unattended prompt (step 5b) told the live agent to run the command with only `<prediction_id>`, which raises an argparse error if followed literally. Since this only executes post-fill during real trade execution, it was never exercised (execution has been blocked for the entire learning period) — the local queue would be marked `executed: true` (step 5a, which does work) while Supabase's `predictions` row silently never got its `entry_price`/`position_size_pct` fields synced, permanently diverging the two stores for that trade.
+
+**Resolved (2026-07-15):** `execute-pending.sh` step 5b now explicitly lists all three required arguments (`<prediction_id> <fill_price> <position_size_pct>`) with a note on where each value comes from.
+
+---
+
+### GAP-69: Strategy doc defined two different numeric cold-start-adjacent thresholds for "signal combo" sample size (30 vs. 10) without reconciling them  ← NEW / LOW
+
+`ai-trading-system-strategy.md` line 164 (Component 4 scoring): "defaults to 8/15 (neutral) during cold start (**<30** resolved predictions for this combo)." Line 178 (the `cold_start` flag definition): "the first 30 predictions, **or** when a specific signal combination has fewer than **10** resolved outcomes in the prediction log, the record is flagged `cold_start: true`." Two different sample-size floors (30 vs. 10) for what read as the same concept — per-combo data sufficiency.
+
+**Resolved (2026-07-15), per Ryan's decision:** Unified to 30 everywhere. Nothing in the codebase implements a per-combo cold-start variant today — the only live cold-start check (`debate.py::_is_cold_start()`) uses a system-wide 30-resolved-prediction count, not per-combo. Introducing a second, lower per-combo threshold (10) that no code path uses yet would only recreate the ambiguity. `ai-trading-system-strategy.md` line 178 corrected to 30, with an explicit note that the per-combo variant remains unimplemented — a future refinement, not current behavior.
+
+---
+
+### GAP-71: No coordination between `scan-and-debate.sh`'s bounded retry window and `execute-pending.sh`'s fixed-time execution — unguarded concurrent read/write of `execution_queue.json`  ← NEW / LOW
+
+`scan-and-debate.sh`'s retry loop (`MAX_ATTEMPTS=3`, `RETRY_DELAY_SECONDS=1200`) could push a debate session up to ~40 minutes past its scheduled start with no `After=`/lock relationship to `catws-execute-pre-market.timer` (fixed at 9:45 AM CT) or the pm_window equivalent. Both scripts read/wrote `logs/execution_queue.json` with no lock — a slow or retried debate run could be mid read-modify-write while `execute-pending.sh` started reading the same file on its fixed schedule.
+
+**Resolved (2026-07-15), alongside GAP-72:** All `logs/execution_queue.json` mutation now goes through `system/data/queue_io.py`, which takes an `flock` on `logs/execution_queue.lock` around every read-modify-write. `reconcile_queue.py` (debate side) and `queue_io.py --mark-executed` (execution side, called from `execute-pending.sh`) share this lock, so the two automated sessions can no longer interleave writes to the queue file. `execute-pending.sh`'s initial read of the queue at the top of its execution loop is not itself lock-protected (holding a lock for the full duration of a live multi-order MCP session isn't practical), but the write-side race — the actual corruption risk — is fully closed.
+
+---
+
+### GAP-72: Execution-queue reconciliation (Section 5 Step 4 / GAP-67) was specified correctly but did not reliably execute in production — first live day left the queue stale despite correct SKIP verdicts  ← NEW / HIGH
+
+Discovered the day after GAP-67 shipped: the 2026-07-15 `pre_market` and `midday` sessions both correctly logged SKIP verdicts to Supabase for tickers with stale pending queue entries (GD, BA, SAIC), but neither session actually read/modified/wrote `logs/execution_queue.json` per the new Section 5 Step 4 instructions. The queue still held 4 stale entries going into the `pm_window` session, which had to apply the full revalidation by hand. Root cause: Step 4 was prose instructions competing for a live agent's attention alongside the primary debate task inside a single long prompt — exactly the kind of multi-branch "read this file, apply this logic, write it back" mechanical task an LLM will sometimes skip or partially apply under a large prompt, with no verification step to catch the miss.
+
+**Resolved (2026-07-15):** Queue maintenance moved entirely out of prose instructions and into `system/data/reconcile_queue.py`, a deterministic script that `scripts/scan-and-debate.sh` calls automatically immediately after every debate session completes (all session types), independent of anything the live agent does or doesn't remember to do. It reads today's logged predictions straight from Supabase (by `scan_id`) and the scan packet's `proceed_to_debate` list, so correctness no longer depends on an LLM correctly re-deriving or re-executing the reconciliation logic — logging predictions to Supabase (already reliable) is now the only thing the debate session itself needs to do right. Verified against real production data post-fix: running it against the actual 2026-07-15 `pm_window` scan (all 6 candidates SKIP, queue already empty) correctly no-ops.
+
+---
+

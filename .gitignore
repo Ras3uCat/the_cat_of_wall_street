@@ -21,6 +21,9 @@ logs/predictions/scan_*.json
 # Account state (fetched via MCP each session — not persisted to git)
 logs/account_state.json
 
+# Execution queue file lock (runtime artifact, no content to track)
+logs/execution_queue.lock
+
 # Keep directory structure
 !logs/.gitkeep
 !logs/data_cache/.gitkeep
