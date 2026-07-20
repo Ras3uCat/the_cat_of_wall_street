@@ -145,10 +145,14 @@ Omit skip_reason entirely (or set it null) when decision is ENTER.
     return result
 
 
-def _send_push(ticker: str, score: int, direction: str, move_pct: float, rationale: str, session_type: str):
+def _send_push(prediction_id: str, ticker: str, score: int, direction: str, move_pct: float, rationale: str, session_type: str):
+    # GAP-83: the deployed /api/notify route (app/app/api/notify/route.ts) requires a
+    # truthy prediction_id and returns 400 without one — this call used to omit it
+    # entirely, so every push from this path was silently failing.
     secret = os.getenv("NOTIFY_SECRET", "")
     url = "https://thecatofwallstreet.skyjumper32.workers.dev/api/notify"
     payload = json.dumps({
+        "prediction_id": prediction_id,
         "ticker": ticker,
         "score": score,
         "direction": direction,
@@ -336,6 +340,7 @@ def main():
                 print(f"[{ticker}] Learning period — logged as approved, execution resumes 2026-08-21")
                 rationale = f"[LEARNING] {rationale}"
             _send_push(
+                prediction_id=prediction["id"],
                 ticker=ticker,
                 score=score,
                 direction=result.get("predicted_direction", "up"),

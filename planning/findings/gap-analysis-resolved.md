@@ -869,3 +869,13 @@ Discovered 2026-07-20 while auditing "anything else we missed" after GAP-73 thro
 
 ---
 
+### GAP-83: `debate.py`'s push notifications and `catws-notify-failure@.service`'s alerts were both missing `prediction_id` — likely 400ing silently against the real deployed endpoint  ← NEW / MEDIUM
+
+Found while wiring GAP-81's weekly-review notification: checked the actual deployed contract (`app/app/api/notify/route.ts`) rather than trusting either of the two inconsistent payload shapes already in the codebase, and confirmed it requires a truthy `prediction_id` (`if (!prediction_id || !ticker) return 400`). `debate.py::_send_push()` and the `catws-notify-failure@.service` template both sent `ticker`/`score`/`direction`/`move_pct`/`rationale`/`session` — never `prediction_id`. Flagged at the time rather than fixed immediately, since it touches an already-flaky notification path ([[project_notify_endpoint_403]] in memory) and `debate.py` isn't even the live debate path (GAP-60 — `scan-and-debate.sh`'s inline prompt is).
+
+Fixing it doesn't touch the deployed frontend at all — the real endpoint contract is already correct and unchanged; both bugs were on the *caller* side, sending an incomplete payload against a contract that's been requiring `prediction_id` this whole time.
+
+**Resolved (2026-07-20):** `_send_push()` gained a `prediction_id` parameter, now passed `prediction["id"]` from its one call site. `catws-notify-failure@.service`'s curl payload now includes `"prediction_id":"system_failure_%i_$(date +%%s)"` (note the `%%` — systemd's specifier-escaping for a literal `%` inside a templated unit's `ExecStart`, easy to get wrong). Verified the resolved payload is valid JSON with a real Python subprocess simulating systemd's `%i`/`%%` substitution, not just eyeballed. Note: `scan-and-debate.sh`'s live path already sent the correct shape (`ticker`+`confidence`+`prediction_id`, per Section 5's documented curl example) — this gap only affected the dormant `debate.py` path and genuine service-failure alerts, not routine ENTER notifications.
+
+---
+
