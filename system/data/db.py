@@ -131,6 +131,7 @@ def insert_prediction(prediction: dict) -> bool:
         return False
 
     components = prediction.get("confidence_components", {})
+    gates = prediction.get("gates", {})  # GAP-77: {'a_catalyst_cited': bool, 'b_unanswered_bear_risk': bool, 'c_ta_fa_good': bool, 'd_timeframe_matches': bool, 'e_why_now_answered': bool}
     row = {
         "id": prediction["id"],
         "scan_id": prediction.get("scan_id") or f"scan_{prediction.get('scan_date', date.today().isoformat())}",
@@ -164,6 +165,16 @@ def insert_prediction(prediction: dict) -> bool:
         "approval_status": prediction.get("approval_status"),
         "equity_at_entry": prediction.get("equity_at_entry"),
         "debate_narrative": prediction.get("debate_narrative"),
+        # GAP-77: gate breakdown require migration 010
+        "gate_a_catalyst_cited": gates.get("a_catalyst_cited"),
+        "gate_b_unanswered_bear_risk": gates.get("b_unanswered_bear_risk"),
+        "gate_c_ta_fa_good": gates.get("c_ta_fa_good"),
+        "gate_d_timeframe_matches": gates.get("d_timeframe_matches"),
+        "gate_e_why_now_answered": gates.get("e_why_now_answered"),
+        # GAP-78: sector_status requires migration 011
+        "sector_status": prediction.get("sector_status"),
+        # GAP-79: adversarial_status requires migration 012
+        "adversarial_status": prediction.get("adversarial_status"),
     }
 
     try:
@@ -206,6 +217,118 @@ def resolve_prediction(prediction_id: str, resolution: dict) -> bool:
         return True
     except Exception as e:
         print(f"[db] resolve_prediction failed: {e}")
+        return False
+
+
+def insert_weekly_review(week_of: str, summary: str) -> bool:
+    """
+    GAP-81: durable record for the Monday self-improvement review
+    (catws-weekly-review.timer). week_of is the Monday's date (YYYY-MM-DD).
+    """
+    client = get_client()
+    if not client:
+        return False
+    try:
+        _retry(lambda: client.table("weekly_reviews").insert({
+            "week_of": week_of,
+            "summary": summary,
+        }).execute())
+        return True
+    except Exception as e:
+        print(f"[db] insert_weekly_review failed: {e}")
+        return False
+
+
+def log_role_assessments(prediction_id: str, assessments: list[dict]) -> bool:
+    """
+    GAP-76: bulk-logs the Fundamental/Sentiment/Technical analysts' individual
+    qualitative reads for a prediction, so role_accuracy can eventually tell
+    whether e.g. 'High evidence quality' Fundamental calls actually do better
+    than 'Low'. Each assessment needs: role, stance, and optionally quality
+    (fundamental_analyst only).
+    """
+    client = get_client()
+    if not client or not assessments:
+        return False
+    rows = [
+        {
+            "prediction_id": prediction_id,
+            "role": a["role"],
+            "stance": a["stance"],
+            "quality": a.get("quality"),
+        }
+        for a in assessments
+    ]
+    try:
+        _retry(lambda: client.table("debate_role_assessments").insert(rows).execute())
+        return True
+    except Exception as e:
+        print(f"[db] log_role_assessments failed: {e}")
+        return False
+
+
+def log_signal_strengths(prediction_id: str, strengths: dict) -> bool:
+    """
+    GAP-79: bulk-logs each fired signal's Strong/Moderate/Weak rating
+    (Component 1) individually, so signal_strength_accuracy can tell whether
+    e.g. a 'Strong' gov_contracts signal predicts better than a 'Moderate' one.
+    strengths: {signal_name: 'strong'|'moderate'|'weak'}
+    """
+    client = get_client()
+    if not client or not strengths:
+        return False
+    rows = [
+        {"prediction_id": prediction_id, "signal_name": name, "strength": strength}
+        for name, strength in strengths.items()
+    ]
+    try:
+        _retry(lambda: client.table("signal_strengths").insert(rows).execute())
+        return True
+    except Exception as e:
+        print(f"[db] log_signal_strengths failed: {e}")
+        return False
+
+
+def log_exit_decision(decision: dict) -> bool:
+    """
+    Records a Section 12 trigger judgment call (Triggers B/D/E/F/G) — GAP-74.
+    Must be called at the moment the decision is made; unlike prediction
+    accuracy this can't be reconstructed after the fact.
+    decision must have at minimum: prediction_id, ticker, trigger, choice,
+    price_at_decision.
+    """
+    client = get_client()
+    if not client:
+        return False
+    row = {
+        "prediction_id": decision["prediction_id"],
+        "ticker": decision["ticker"].upper(),
+        "trigger": decision["trigger"],
+        "choice": decision["choice"],
+        "rationale": decision.get("rationale"),
+        "price_at_decision": decision["price_at_decision"],
+        "original_timeframe_days": decision.get("original_timeframe_days"),
+        "extended_to_days": decision.get("extended_to_days"),
+    }
+    try:
+        _retry(lambda: client.table("exit_decisions").insert(row).execute())
+        return True
+    except Exception as e:
+        print(f"[db] log_exit_decision failed: {e}")
+        return False
+
+
+def resolve_exit_decision(decision_id: int, fields: dict) -> bool:
+    """Fills in the counterfactual outcome for a previously logged exit decision."""
+    client = get_client()
+    if not client:
+        return False
+    update = {**fields, "counterfactual_resolved": True}
+    try:
+        _retry(lambda: client.table("exit_decisions").update(update).eq("id", decision_id).execute())
+        return True
+    except Exception as e:
+        print(f"[db] resolve_exit_decision failed: {e}")
         return False
 
 
@@ -399,6 +522,40 @@ def get_close_price(ticker: str, as_of: str, max_staleness_days: int = PRICE_STA
     except Exception as e:
         print(f"[db] get_close_price failed: {e}")
         return None
+
+
+def get_close_price_dated(ticker: str, as_of: str, max_staleness_days: int = PRICE_STALENESS_MAX_DAYS) -> tuple[float, str] | tuple[None, None]:
+    """
+    Same lookup as get_close_price, but also returns the actual date of the
+    matched row. resolve.py needs this to detect when an entry lookup and an
+    exit lookup land on the same underlying trading day (no real price
+    movement observed yet — e.g. resolving a same-day-due prediction before
+    today's close has posted) rather than treating a same-price result as a
+    genuine flat move.
+    """
+    client = get_client()
+    if not client:
+        return None, None
+    try:
+        result = (
+            client.table("price_history")
+            .select("date,close")
+            .eq("ticker", ticker.upper())
+            .lte("date", as_of)
+            .order("date", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = result.data or []
+        if not rows or rows[0].get("close") is None:
+            return None, None
+        gap_days = (date.fromisoformat(as_of) - date.fromisoformat(rows[0]["date"])).days
+        if gap_days > max_staleness_days:
+            return None, None
+        return float(rows[0]["close"]), rows[0]["date"]
+    except Exception as e:
+        print(f"[db] get_close_price_dated failed: {e}")
+        return None, None
 
 
 def get_price_history(ticker: str, days: int = 35) -> list[dict]:

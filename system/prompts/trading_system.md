@@ -108,6 +108,30 @@ Read `system/prompts/signal_reference.md` when an agent needs to assess signal s
 
 For each ticker that is `proceed_to_debate: true`, run the following sequence in order. Label each section clearly. Each role's output is visible to all subsequent roles.
 
+**PRE-DEBATE — HISTORICAL CONTEXT (GAP-80):** Before Role 1, pull what the system has actually learned about this specific setup so far — otherwise the Bullish and Bearish Debaters argue blind, and Component 4's historical-combo lookup (which finds the exact same data) doesn't happen until Role 7, after the debate is already over and can no longer use it.
+
+```bash
+.venv/bin/python -c "
+import sys; sys.path.insert(0, 'system/data')
+from dotenv import load_dotenv; load_dotenv()
+import db, json
+client = db.get_client()
+# Filter client-side to this ticker's actual fired signal combo and sector status
+print('=== SIGNAL ACCURACY (all combos — find this ticker's fired combo) ===')
+print(json.dumps(client.table('signal_accuracy').select('*').execute().data, indent=2))
+print('=== SECTOR STATUS ACCURACY ===')
+print(json.dumps(client.table('sector_status_accuracy').select('*').execute().data, indent=2))
+"
+```
+
+Output a short block before Role 1 begins:
+```
+HISTORICAL CONTEXT — [TICKER]
+Signal combo [list]: [X]% direction accuracy over [N] resolved (or "insufficient_data — unproven")
+Sector status [in_favor/mixed/out_of_favor]: [X]% direction accuracy over [N] resolved (or "insufficient_data — unproven")
+```
+This block is visible to every subsequent role. If a combo/sector has `insufficient_data = true`, say so plainly — a small sample cutting against the thesis is not the same as a proven pattern, and shouldn't be treated as one by either debater.
+
 ---
 
 ### ROLE 1: FUNDAMENTAL ANALYST
@@ -178,7 +202,7 @@ Technical summary: [2 sentences max]
 
 ### ROLE 4: BULLISH DEBATER
 
-**Input:** Roles 1–3 outputs.
+**Input:** Roles 1–3 outputs, plus the PRE-DEBATE HISTORICAL CONTEXT block.
 
 **Task:** Build the single strongest possible case FOR this trade. No hedging. Assume everything is going right. What is the most compelling bull thesis, and what specific price target does it imply?
 
@@ -193,6 +217,7 @@ Bull thesis (steelmanned):
 • [Catalyst or timing edge]
 Why the bear case is wrong: [1–2 sentences addressing the most obvious objection]
 Why now (not next week): [The specific catalyst or timing edge that makes entry THIS SESSION better than waiting — e.g., earnings beat expected within 5 days, 8-K filed yesterday, options flow spiked today, insider buy posted 3 days ago. If no near-term catalyst exists, state it explicitly: "No near-term catalyst — thesis is valuation-driven." A valuation-only answer with no timing edge should be noted as a weakness in the debate.]
+Track record check (GAP-80): [If HISTORICAL CONTEXT shows this signal combo or sector status at < 50% direction accuracy with insufficient_data=false, explicitly address why THIS setup is different from the historical pattern — do not just ignore an unfavorable track record. If insufficient_data=true or accuracy is favorable, one sentence noting that is enough.]
 ```
 
 **Match timeframe to signals.** The goal is maximum profit — intraday, multi-day, or multi-week holds are all valid if the data supports them. Use this guide:
@@ -214,7 +239,7 @@ State your reasoning for the chosen timeframe in the output. Never leave it unju
 
 ### ROLE 5: BEARISH DEBATER
 
-**Input:** Roles 1–3 outputs.
+**Input:** Roles 1–3 outputs, plus the PRE-DEBATE HISTORICAL CONTEXT block.
 
 **Task:** Build the single strongest possible case AGAINST this trade. What would have to be true for this trade to fail? What is the bull thesis missing or getting wrong?
 
@@ -225,7 +250,7 @@ Predicted direction: DOWN (or flat)
 Bear thesis (steelmanned):
 • [Strongest point — what the bull case is ignoring]
 • [Risk that isn't priced in]
-• [Base rate or historical precedent that argues against]
+• [Base rate or historical precedent that argues against — use the HISTORICAL CONTEXT block here if this combo/sector has insufficient_data=false and shows weak accuracy (GAP-80); a real logged track record beats a generic base rate]
 What would make me wrong: [Under what conditions would the bull case actually play out]
 ```
 
@@ -259,7 +284,7 @@ Settled funds check: [OK / flagged — reason]
 Risk summary: [1–2 sentences on the dominant risk]
 ```
 
-**If VETO on binary event proximity (check 1 above):** this is knowable before Roles 4–5 would add any value — every ticker gets the identical VETO today regardless of thesis quality. Skip Roles 4–5 and the Adversarial Reviewer. Go to Role 7 for a PARTIAL confidence score (see Role 7 — "Hard-Stop Partial Score"). `skip_reason = risk_management_rule` (state the specific binary event: NFP/CPI/Fed, day-of or day-before).
+**If VETO on binary event proximity (check 1 above):** this is knowable before Roles 4–5 would add any value — every ticker gets the identical VETO today regardless of thesis quality. Skip Roles 4–5 and the Adversarial Reviewer. Go to Role 7 for a PARTIAL confidence score (see Role 7 — "Hard-Stop Partial Score"). `skip_reason = risk_management_rule` (the bare canonical value — GAP-75: never concatenate the specific event into this field, e.g. never `'risk_management_rule: NFP release day-before'`; state the specific binary event — NFP/CPI/Fed, day-of or day-before — in the debate narrative instead, where it belongs).
 
 **If VETO for any other reason (checks 2–7):** these can only be determined after Roles 4–5 have run — they depend on the completed thesis, today's other approved trades, or final position sizing. By the time this VETO fires, Roles 4–5 and the full confidence score (Role 7) have already been computed normally. State the veto reason clearly, log the FULL confidence score as computed (do not discard the completed Bull/Bear work), and set `skip_reason = risk_manager_veto` with the specific reason (e.g. duplicate position, heat cap).
 
@@ -508,13 +533,40 @@ db.insert_prediction({
     'vix_at_prediction': XX.X,
     'market_regime': 'low',               # vix regime string
     'executed': True/False,
-    'skip_reason': None,                  # or reason string; 'learning_period' during learning window
+    'skip_reason': None,                  # canonical value from SKIP_REASON_VALUES (config.py) or None; 'learning_period' during learning window — GAP-75: never a free-text sentence, never concatenated detail
     'entry_price': XX.XX,                 # null if skipped
     'entry_date': 'YYYY-MM-DD',          # null if skipped
     'position_size_pct': X.X,            # null if skipped
     'approval_status': 'approved',        # 'approved' for ENTER proposals; None for skips
     'equity_at_entry': equity,            # always set — used for P&L math in the web app
     'debate_narrative': debate_narrative, # full 7-agent debate text
+    'gates': {                            # GAP-77 — Role 7 Component 2's five binary gates; None/omit entirely for hard-stop partial scores (Bull/Bear never ran, gates N/A)
+        'a_catalyst_cited': True/False,
+        'b_unanswered_bear_risk': True/False,
+        'c_ta_fa_good': True/False,
+        'd_timeframe_matches': True/False,
+        'e_why_now_answered': True/False,
+    },
+    'sector_status': 'in_favor',          # GAP-78 — Role 2 Sentiment Analyst's sector status for this ticker: in_favor | mixed | out_of_favor | unknown
+    'adversarial_status': 'cleared',      # GAP-79 — 'cleared' or 'challenge'; only set for ENTER proposals that reached Role 7 Step 4, otherwise omit/None
+})
+"
+```
+
+**Step 2b — Log per-role and per-signal detail (GAP-76/79), same session, right after the insert above:**
+```bash
+.venv/bin/python -c "
+import sys; sys.path.insert(0, 'system/data')
+from dotenv import load_dotenv; load_dotenv()
+import db
+db.log_role_assessments('pred_YYYYMMDD_NNN', [
+    {'role': 'fundamental_analyst', 'stance': 'bullish', 'quality': 'high'},  # stance: bullish|bearish|neutral; quality: high|medium|low (fundamental_analyst only, omit for others)
+    {'role': 'sentiment_analyst', 'stance': 'positive'},                     # stance: positive|neutral|negative (Role 2's own vocabulary — matches its output format)
+    {'role': 'technical_analyst', 'stance': 'good'},                        # stance: good|neutral|poor (Role 3's entry timing verdict)
+])
+db.log_signal_strengths('pred_YYYYMMDD_NNN', {
+    'insider_trades': 'strong',   # one entry per signal in signals_fired above, value from Component 1's Strong/Moderate/Weak rating
+    'gov_contracts': 'moderate',
 })
 "
 ```
@@ -585,13 +637,15 @@ These are non-negotiable. They override any agent's recommendation.
 | Losing streak | 5 consecutive losses | Reduce max position to 7%, flag for review |
 | Drawdown circuit breaker | 15% total account drawdown | Halt all trading, require manual re-enable |
 
-**When a hard rule would be breached:** state the rule clearly, do not enter, log as `skip_reason: risk_management_rule`, note which specific rule triggered.
+**When a hard rule would be breached:** state the rule clearly, do not enter, log as `skip_reason: risk_management_rule` (bare canonical value — GAP-75: which specific rule triggered belongs in debate_narrative, never concatenated into skip_reason itself).
 
 ---
 
 ## SECTION 7 — Weekly Self-Improvement Protocol
 
 Run every Monday at the start of the session, before the daily scan.
+
+**GAP-81 — this is now automated, not manual:** `catws-weekly-review.timer` runs `scripts/weekly-review.sh` every Monday 06:30 CT (before `catws-discovery.timer` at 07:00 and `catws-scan-pre-market.timer` at 08:00 — matches the documented ordering below). It runs the full query, writes the findings to Supabase (`db.insert_weekly_review`), and sends a push notification. Before this fix there was no automated trigger anywhere for this section — confirmed via `systemctl --user list-timers` and a repo-wide grep, zero hits — so it depended entirely on a human remembering to run it by hand. If you're running this manually (e.g. reviewing ahead of the scheduled run), the steps below are unchanged.
 
 ```bash
 .venv/bin/python -c "
@@ -608,6 +662,24 @@ print(json.dumps(client.table('agent_accuracy').select('*').execute().data, inde
 
 print('=== CONFIDENCE CALIBRATION ===')
 print(json.dumps(client.table('confidence_score_calibration').select('*').execute().data, indent=2))
+
+print('=== EXIT DECISION ACCURACY (GAP-74) ===')
+print(json.dumps(client.table('exit_decision_accuracy').select('*').execute().data, indent=2))
+
+print('=== ROLE ACCURACY — Fundamental/Sentiment/Technical analysts (GAP-76) ===')
+print(json.dumps(client.table('role_accuracy').select('*').execute().data, indent=2))
+
+print('=== GATE ACCURACY — Component 2 Gates A-E individually (GAP-77) ===')
+print(json.dumps(client.table('gate_accuracy').select('*').execute().data, indent=2))
+
+print('=== SECTOR STATUS ACCURACY (GAP-78) ===')
+print(json.dumps(client.table('sector_status_accuracy').select('*').execute().data, indent=2))
+
+print('=== SIGNAL STRENGTH ACCURACY (GAP-79) ===')
+print(json.dumps(client.table('signal_strength_accuracy').select('*').execute().data, indent=2))
+
+print('=== ADVERSARIAL REVIEWER ACCURACY (GAP-79) ===')
+print(json.dumps(client.table('adversarial_reviewer_accuracy').select('*').execute().data, indent=2))
 "
 ```
 
@@ -615,14 +687,18 @@ Review the output and:
 1. Flag any signal combination with `direction_accuracy_pct < 50` and `insufficient_data = false` — candidate for removal
 2. Flag any signal combination where `insufficient_data = true` — note as "unproven, weight with caution"
 3. Check `confidence_score_calibration` — if high-confidence bands are not outperforming lower bands, the scoring model needs review
-4. Draft structured weight-change recommendations
-5. **Present recommendations to Ryan. Do not apply any changes until explicitly approved.**
+4. Check `exit_decision_accuracy` per trigger+choice (once past `insufficient_data`) — e.g. does `trigger_b_target_hit` / `hold_and_trail` show a positive `avg_move_after_decision_pct` (holding was rewarded) or negative (should be taking the win)? Same read for `trigger_d_timeframe_expiry` extends.
+5. Check `role_accuracy`, `gate_accuracy`, `sector_status_accuracy`, `signal_strength_accuracy`, `adversarial_reviewer_accuracy` (once past `insufficient_data`) — which individual roles/gates/signal-strength ratings actually predict outcomes vs. which are noise in the scoring formula? Is the Adversarial Reviewer's CHALLENGE catching real problems, or just docking good trades?
+6. Draft structured weight-change recommendations
+7. **Present recommendations to Ryan. Do not apply any changes until explicitly approved.**
+8. Write the full findings + recommendations to Supabase: `db.insert_weekly_review(week_of='YYYY-MM-DD', summary='...')` (week_of = this Monday's date)
+9. Send a push notification so Ryan knows a review is ready — same endpoint as prediction notifications, but this isn't tied to one ticker/prediction, so use a sentinel: `{"ticker": "WEEKLY_REVIEW", "prediction_id": "weekly_review_YYYYMMDD"}`. (Verified against the deployed `/api/notify` route: it requires truthy `prediction_id` AND `ticker`, nothing else — this satisfies that contract without implying a real prediction exists.)
 
 ---
 
 ### Weekly Watchlist Discovery (also run Mondays)
 
-Run after the self-improvement block above. Surfaces public companies with strong gov contract or insider signals not on the current watchlist.
+Run after the self-improvement block above. Surfaces public companies with strong gov contract or insider signals not on the current watchlist. Automated via `catws-discovery.timer` (Monday 07:00 CT — GAP-82: this ran Mon-Fri for an unknown period despite its own description saying weekly; fixed 2026-07-20 to actually match).
 
 **Step 1 — Python discovery scan (contracts + insider sweep):**
 ```bash
@@ -949,6 +1025,8 @@ Run these checks at **session startup, before Step 2**, for every open executed 
 
 Target price for each position is computed as: `target_price = entry_price × (1 + predicted_move_pct / 100)`.
 
+**GAP-74 — exit-decision logging:** Triggers B, D, E, F, G each involve a real judgment call (Ryan's choice, or Ryan's absence of response). Every one of them must be logged via `db.log_exit_decision(...)` at the point the decision is actually made — see each trigger below for the exact call. In an unattended session (`execute-pending.sh` Step 0), these triggers send a push notification and leave state unchanged rather than blocking for a response — there is no decision yet in that case, so nothing to log until Ryan actually responds in a later session.
+
 ---
 
 ### Trigger A — Stop-loss fill detection
@@ -988,6 +1066,24 @@ For each open position, compare `current_price` to `target_price`:
 - If Ryan responds **B**: cancel existing stop order via MCP, place new stop at `current_price × 0.95`
 - If no response: leave stop unchanged, note it in session log
 
+**Log the decision (GAP-74) — every response, including no-response:**
+```bash
+.venv/bin/python -c "
+import sys; sys.path.insert(0, 'system/data')
+from dotenv import load_dotenv; load_dotenv()
+import db
+db.log_exit_decision({
+    'prediction_id': 'pred_YYYYMMDD_NNN',
+    'ticker': 'TICKER',
+    'trigger': 'trigger_b_target_hit',
+    'choice': 'exit_now',   # or 'hold_and_trail' | 'no_action'
+    'rationale': 'One sentence.',
+    'price_at_decision': XX.XX,
+})
+"
+```
+This is the only chance to capture this judgment call — it can't be reconstructed later.
+
 ---
 
 ### Trigger C — Trailing stop ladder
@@ -1024,6 +1120,25 @@ Type A or B.
 ```
 If Ryan chooses **B** and the mini-debate passes: update `predicted_timeframe_days` in Supabase to the extended value. If the mini-debate fails: recommend exit.
 
+**Log the decision (GAP-74):**
+```bash
+.venv/bin/python -c "
+import sys; sys.path.insert(0, 'system/data')
+from dotenv import load_dotenv; load_dotenv()
+import db
+db.log_exit_decision({
+    'prediction_id': 'pred_YYYYMMDD_NNN',
+    'ticker': 'TICKER',
+    'trigger': 'trigger_d_timeframe_expiry',
+    'choice': 'exit',   # or 'extend'
+    'rationale': 'One sentence — mini-debate verdict if extended.',
+    'price_at_decision': XX.XX,
+    'original_timeframe_days': Y,
+    'extended_to_days': Z,   # null if choice='exit'
+})
+"
+```
+
 ---
 
 ### Trigger E — Thesis invalidation scan
@@ -1038,13 +1153,15 @@ THESIS ALERT — [TICKER]: [filing type] filed [date] (entry was [entry_date])
 Summary: [1-sentence description of the filing]
 Recommend: review position before proceeding with today's session.
 ```
-Ryan decides whether to exit or hold. Do not auto-exit.
+Ryan decides whether to exit or hold. Do not auto-exit. **Log the decision (GAP-74)** via `db.log_exit_decision({..., 'trigger': 'trigger_e_thesis_invalidation', 'choice': 'held' or 'exited', 'price_at_decision': XX.XX})` — same call shape as Trigger B, once Ryan responds. If no alert fired this session, there is no decision to log.
 
 ---
 
 ### Trigger F — Earnings proximity on held positions
 
 If a held ticker has earnings within 3 days (check via `fetch_earnings_calendar.py`): flag it identically to a thesis alert. Ryan decides whether to exit before earnings. The universe gate already blocks new entries near earnings — this extends that logic to existing positions.
+
+**Log the decision (GAP-74)** via `db.log_exit_decision({..., 'trigger': 'trigger_f_earnings_proximity', 'choice': 'held' or 'exited', 'price_at_decision': XX.XX})`, once Ryan responds.
 
 ---
 
@@ -1057,4 +1174,4 @@ Holding until [date] reduces estimated rate: 30% → ~15%
 Current gain: +Y%  →  after-tax net improves from +Y×0.70% to +Y×0.85%
 Consider: exit now or hold to [date]?
 ```
-Surface to Ryan for a deliberate decision.
+Surface to Ryan for a deliberate decision. **Log the decision (GAP-74)** via `db.log_exit_decision({..., 'trigger': 'trigger_g_tax_timing', 'choice': 'held_for_ltcg' or 'exited_now', 'price_at_decision': XX.XX})`, once Ryan responds.

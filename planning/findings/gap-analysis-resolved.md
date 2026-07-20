@@ -777,3 +777,95 @@ Discovered the day after GAP-67 shipped: the 2026-07-15 `pre_market` and `midday
 
 ---
 
+### GAP-73: `resolve.py` can resolve a same-day-due prediction against a stale duplicate price, faking a "flat" (0.0%) outcome  ← NEW / MEDIUM
+
+Discovered 2026-07-20, the first day any counterfactual (learning-period) predictions became due — `resolve.py` (GAP-50/54/59) is sound in design and had been running successfully via `catws-resolve.timer` every day since 2026-07-13 with nothing yet due, so this had never surfaced. Manually running it mid-morning (09:25 AM CT, before market close) to check on the day's first-ever due predictions exposed the bug: for `pred_20260717_005` (JPM) and `pred_20260717_020` (UNH), both a 3-day timeframe from scan_date 2026-07-17, `_fetch_close()`'s entry lookup (scan_date) and exit lookup (2026-07-20, calendar-due today) both fell back to the same nearest-available row — Friday 2026-07-17's close — because no trading day had actually settled between them yet (weekend + today's close not posted). Both resolved as a bogus exactly-0.0% move, direction scored wrong, and `resolved=True` was written — permanently, since the nightly timer only looks at `resolved=False` rows and would never revisit them.
+
+The two genuinely multi-day resolutions in the same run (`pred_20260715_005` JPM, `pred_20260707_010` LMT) were unaffected — their entry dates were far enough in the past that the exit lookup legitimately landed on a later trading day, even falling back to a few-days-stale close under `PRICE_STALENESS_MAX_DAYS`.
+
+**Resolved (2026-07-20):** `db.get_close_price_dated()` added (mirrors `get_close_price`, also returns the matched row's actual date). `resolve.py::_fetch_close()` now returns `(price, matched_date)` instead of just `price`; both the real-trade pass and the counterfactual pass compare the exit lookup's matched date against the entry side's matched/actual date and skip (treated as "not yet due," not an error) when they're equal — i.e. no real trading day has elapsed between entry and exit yet, so there's nothing to score. The two corrupted rows were reverted (`resolved=False`, exit fields cleared) and the fixed script was re-run to confirm it now correctly holds them for the next scheduled pass instead of re-triggering the same artifact. This same failure mode could eventually hit real executed trades too (pass 1) once live trading starts, not just the counterfactual pass — the fix covers both.
+
+---
+
+### GAP-74: No learning signal on exit/sell-timing decisions — only entry-thesis accuracy is ever scored  ← NEW / HIGH
+
+Discovered 2026-07-20 while investigating "are we learning to sell well, not just to enter well." `predictions`/`signal_accuracy`/`agent_accuracy`/`confidence_score_calibration` only ever score the entry thesis (direction/magnitude vs. signals fired at debate time). Every actual sell *judgment call* in `trading_system.md` Section 12 — Trigger B (target hit: exit now vs. hold & trail), Trigger D (timeframe expiry: exit vs. extend via mini-debate), Trigger E (thesis invalidation), Trigger F (earnings proximity on a held position), Trigger G (near-1-year tax timing) — was pure human-in-the-loop prompt text with no code path anywhere that recorded which choice Ryan made or how the market moved afterward. Confirmed via a full repo search: no column, no table, no `db.py` function existed for it. `predicted_timeframe_days` is even silently overwritten with no record when Trigger D's EXTEND path is taken. Unlike entry-prediction accuracy (which can be reconstructed from `price_history` after the fact for any historical prediction), exit-decision data is only capturable at the moment the decision is made — once live trading starts 2026-08-21, every un-logged Trigger B/D/E/F/G choice is lost forever.
+
+**Resolved (2026-07-20):** New `exit_decisions` table (migration 007) captures every trigger's choice, rationale, and the price at the moment of decision, keyed to the originating `prediction_id`. `db.log_exit_decision()` writes it; `trading_system.md` Section 12 now instructs logging it at each of Triggers B/D/E/F/G, immediately after the decision is made (not in unattended `execute-pending.sh` sessions, where these triggers only notify and leave state unchanged — nothing to log until Ryan actually responds). A new `resolve_exit_decisions.py` (called automatically as a third pass from `resolve.py`, so it rides the existing `catws-resolve.timer` with no new infra) fills in a counterfactual once `EXIT_DECISION_EVAL_DAYS` (10) have passed: the ticker's actual price move after the decision, independent of which path was taken — same trick `resolve.py` already uses for counterfactual predictions, since the market's price series doesn't care what we chose. A new `exit_decision_accuracy` view (grouped by trigger+choice, same `insufficient_data` convention as `signal_accuracy`) is wired into Section 7's weekly self-improvement query. End-to-end tested with a synthetic backdated row (logged → resolved → deleted) before shipping; no real exit decisions exist yet since no positions are open during the learning period.
+
+---
+
+### GAP-75: Only 13% of logged predictions were ever resolvable — `skip_reason` vocabulary was unenforced and fragmented, and the counterfactual pass only covered `learning_period` rows  ← NEW / HIGH
+
+Discovered 2026-07-20 immediately after GAP-74, while auditing "what else are we not learning from." Two compounding problems:
+
+1. **`resolve.py`'s counterfactual pass (GAP-50) only ever queried `skip_reason='learning_period'`.** That's a genuine ENTER call blocked only by the learning window, but it excluded 159 `score_below_threshold` and 17 `risk_manager_veto` rows — predictions with a complete Bull/Bear thesis and a full computed confidence score, just skipped for a different reason. Result: 50/378 predictions (13%) were even eligible for resolution, and `confidence_score_calibration`'s `where score_passed = true` filter meant the '50–64' and '0–49' bands could *never* populate — making it structurally impossible to ever answer "is the confidence threshold in the right place," which is exactly the question a threshold exists to answer.
+2. **`skip_reason` was documented only in a `supabase_schema.sql` comment, never enforced** (no CHECK constraint, unlike `exit_reason`) — same root cause as GAP-58's `signals_fired` fragmentation. It fragmented two ways: `debate.py:308` fell back to the freeform `rationale` sentence (or a mis-spelled literal) whenever the model didn't set a value the code expected, producing `'score below threshold'` / `'confidence_below_threshold'` alongside the correct `'score_below_threshold'` — three spellings, same meaning, un-groupable. Separately, the **actually-live** path (`scripts/scan-and-debate.sh`'s inline prompt, per GAP-60) hardcoded the mis-spelled `'score below threshold'` directly as an example in its own prompt text — the direct cause of most of the 51 real rows carrying that spelling. Role 6's instruction to "state the specific binary event" in `skip_reason` was similarly read as "concatenate it into the field," producing 44 rows like `'risk_management_rule: NFP release day-before...'`.
+
+**Resolved (2026-07-20):**
+- Migration 008: one-time backfill normalizing all fragmented values to canonical spellings, a `predictions_skip_reason_check` CHECK constraint (mirroring `exit_reason`'s), and `confidence_score_calibration` rebuilt without the `score_passed = true` filter so all four confidence bands are reachable.
+- `SKIP_REASON_VALUES` added to `config.py` as the single source of truth (mirrors `SIGNAL_CATEGORY_NAMES`).
+- `debate.py`: JSON schema now requests a structured `skip_reason` field constrained to the canonical vocabulary instead of inferring one from `rationale`; extraction code validates against `SKIP_REASON_VALUES` with a safe fallback.
+- `scan-and-debate.sh` (the live path): now reads `SKIP_REASON_NAMES` from `config.py` the same way it already does for `SIGNAL_NAMES`, instead of hand-typing (and mis-spelling) an example inline. Explicit instruction added: event-specific detail belongs in `debate_narrative`, never concatenated into `skip_reason`.
+- `trading_system.md` Role 6 (both the binary-event-proximity VETO path and the general hard-rule-breach instruction): clarified to log the bare canonical value only.
+- `resolve.py`'s second pass: query changed from `skip_reason='learning_period'` to a data-completeness filter (`predicted_direction`/`predicted_move_pct`/`predicted_timeframe_days` all non-null) — more robust than enumerating skip reasons, since it naturally excludes genuine hard-stop-partial rows (no Bull/Bear thesis to test) without keeping a second allowlist in sync.
+- **Run for real, not just tested:** resolvable population went from 50 → 289; this single run resolved **148 predictions** (up from 2 before this fix). First real read on `confidence_score_calibration` at n=150: high band (80–100) is at 25% direction accuracy, medium-high (65–79) at 25%, but medium (50–64) at 72.2% and low (0–49) at 58.3% — the confidence score is currently **inversely correlated** with outcome. Early and noisy (high band n=4), but a real, actionable signal the system could never have surfaced before this fix.
+
+---
+
+### GAP-76: `agent_accuracy` is structurally dead — `agent` is hardcoded to `'trader_synthesizer'` on every row  ← NEW / MEDIUM
+
+Discovered 2026-07-20 during the same "what else are we not learning from" audit as GAP-75. There's exactly one final decision-maker per prediction (the Trader Synthesizer), so `agent_accuracy` grouped by `predictions.agent` can never show more than one line — not a bug exactly, but it means there's no way to tell whether the Fundamental Analyst's "High evidence quality" calls, the Sentiment Analyst's read, or the Technical Analyst's entry-timing read are independently predictive, since those roles' output only ever existed inside the freeform `debate_narrative` text blob.
+
+**Resolved (2026-07-20):** New `debate_role_assessments` child table (migration 009, one row per prediction per role) captures Fundamental/Sentiment/Technical analysts' structured stance (+ evidence quality for Fundamental) — scoped to those three assessor roles, not Bull/Bear, since the debaters are advocates by construction (Bull always argues up in this long-only v1) and their "accuracy" would just mirror the overall direction_correct rate. `db.log_role_assessments()` writes it; `trading_system.md` Section 5 Step 2b and `scan-and-debate.sh`'s live prompt both now call it right after `insert_prediction`. New `role_accuracy` view, same `insufficient_data` convention as `signal_accuracy`. The existing `agent_accuracy` view is left as-is (it's correct, just uninteresting) rather than repurposed. End-to-end tested against a real prediction row, then cleaned up.
+
+---
+
+### GAP-77: Component 2's five binary gates (A-E) only ever stored as one summed number  ← NEW / MEDIUM
+
+Role 7's Component 2 (Debate Outcome Quality) computes five independent binary gates — catalyst cited, unanswered bear risk, TA+FA both good, timeframe matches signal guide, "why now" answered — but only `confidence_component_debate` (the sum) was ever persisted. No way to tell which individual gates actually predict outcomes vs. which are just noise in the scoring formula.
+
+**Resolved (2026-07-20):** Migration 010 adds five boolean columns directly on `predictions` (one gate-evaluation per prediction, so plain columns rather than a child table) plus a `gate_accuracy` view (unpivoted via `UNION ALL` since the gates are columns, not rows). `insert_prediction()` now accepts a `gates` dict; `trading_system.md` Section 5 and `scan-and-debate.sh` both updated to populate it (omitted entirely for hard-stop partial scores, where Bull/Bear never ran and the gates are N/A by definition — same convention Component 2 itself already uses). End-to-end tested, then cleaned up.
+
+---
+
+### GAP-78: Sector rotation status (in_favor/out_of_favor) never persisted per-prediction, only at the scan level  ← NEW / MEDIUM
+
+Related to the existing "Sector Rotation Field Gotcha" memory note. Component 3 (Market Regime Alignment) partly scores on sector status, and Role 2 (Sentiment Analyst) states it in every debate — but it was never written onto the prediction row itself, only living transiently in the scan packet / `scans.sector_rotation` jsonb. No way to ever check "do predictions entered when the sector was in_favor actually outperform mixed/out_of_favor ones."
+
+**Resolved (2026-07-20):** Migration 011 adds `predictions.sector_status` (in_favor/mixed/out_of_favor/unknown) + a `sector_status_accuracy` view. `insert_prediction()` accepts it directly; docs updated to populate it from Role 2's output at logging time. End-to-end tested, then cleaned up.
+
+---
+
+### GAP-79: Per-signal strength (Strong/Moderate/Weak) and Adversarial Reviewer verdict never persisted structurally  ← NEW / LOW
+
+Two smaller gaps bundled together since both are Role 7 output that only ever landed in `debate_narrative` text: (1) Component 1 rates each fired signal Strong/Moderate/Weak individually but only the summed points are stored, so e.g. whether a "Strong" `gov_contracts` signal predicts better than a "Moderate" one is unanswerable; (2) the Adversarial Reviewer's CLEARED/CHALLENGE verdict (Role 7 Step 4) was never recorded, so there's no way to check whether that step is actually catching bad trades or just occasionally docking 8 points from good ones.
+
+**Resolved (2026-07-20):** Migration 012 adds a `signal_strengths` child table (1:many, mirrors `debate_role_assessments`) + `signal_strength_accuracy` view, and a `predictions.adversarial_status` column (1:1, only set for ENTER proposals that reached Step 4) + `adversarial_reviewer_accuracy` view. `db.log_signal_strengths()` and the `adversarial_status` field on `insert_prediction()` wired into `trading_system.md` Section 5 and `scan-and-debate.sh`. End-to-end tested, then cleaned up.
+
+---
+
+### GAP-80: Debaters argued blind to the system's own track record — Component 4's historical-combo lookup only happened at final scoring, after Bull/Bear had already built their case  ← NEW / HIGH
+
+Discovered 2026-07-20 in direct response to Ryan asking "make sure the debaters are learning." Role 7's Component 4 (Historical Combo Accuracy) queries `signal_accuracy` for the exact signal combo just debated — but only at final scoring, which happens *after* Roles 4-5 (Bullish/Bearish Debaters) have already built their case. The debate itself never saw what the system has actually learned about this setup: whether this signal combo or sector status has historically been reliable or garbage. Same underlying shape as GAP-75/76-79 — real learning data existing in Supabase but never reaching the point in the process where it could actually change a decision.
+
+**Resolved (2026-07-20):** Added a PRE-DEBATE HISTORICAL CONTEXT step at the top of Section 3, before Role 1 — queries `signal_accuracy` and the new (GAP-78) `sector_status_accuracy` and outputs a short block visible to every subsequent role, per the debate's existing "each role's output is visible to all subsequent roles" structure. Role 4 (Bullish Debater)'s output format gained a required "Track record check" line: if the historical accuracy for this combo/sector is below 50% with `insufficient_data=false`, the bull case must explicitly address why this setup differs from the pattern, not just ignore it. Role 5 (Bearish Debater)'s "base rate or historical precedent" bullet now points at this same real data instead of a generic base rate. `scan-and-debate.sh`'s prompt reinforces that this step isn't optional decoration, given the demonstrated pattern (GAP-72) of prose steps getting dropped under prompt load.
+
+---
+
+### GAP-81: No automated trigger for Section 7 (weekly self-improvement) or Section 8 (monthly report) — the step that turns calibration data into actual decisions had zero automation  ← NEW / HIGH
+
+Discovered 2026-07-20 while auditing "anything else we missed" after GAP-73 through GAP-80 built out a full calibration pipeline (148 resolved predictions, per-role/gate/sector/signal-strength views, the confidence-inversion finding). Checked `systemctl --user list-timers`, every unit file, and grepped the whole repo for any reference to `signal_accuracy` or self-improvement logic outside `trading_system.md`'s own prose — zero automated triggers existed. Also found no trace in `planning/` or `logs/` of Section 7 ever having been run. This meant all the calibration infrastructure built earlier today would sit in Supabase indefinitely unless Ryan happened to think to ask about it manually, exactly as he did.
+
+**Resolved (2026-07-20):** New `weekly_reviews` table (migration 013) gives the review a durable home. New `scripts/weekly-review.sh` (mirrors `scan-and-debate.sh`'s non-interactive Claude Code pattern) runs Section 7's full query — now including all 5 views added earlier today (`role_accuracy`, `gate_accuracy`, `sector_status_accuracy`, `signal_strength_accuracy`, `adversarial_reviewer_accuracy`) alongside the original 3 plus `exit_decision_accuracy` — writes the findings via `db.insert_weekly_review()`, and sends a push notification. New `catws-weekly-review.service`/`.timer`, scheduled Monday 06:30 CT — before `catws-discovery.timer` (07:00) and `catws-scan-pre-market.timer` (08:00), matching Section 7's documented ordering ("run before the daily scan," discovery "after the self-improvement block"). Explicitly does not apply any weight/threshold/watchlist changes itself — recommendations only, consistent with the existing "present to Ryan, don't apply without approval" rule. While building the notification step, found the deployed `/api/notify` route requires a truthy `prediction_id` (checked the actual route source, `app/app/api/notify/route.ts`) — but `debate.py`'s `_send_push()` and the existing `catws-notify-failure@.service` template both send a payload that never includes `prediction_id`, meaning those calls likely 400 silently. Not fixed as part of this gap (tangled up with the already-open NOTIFY_SECRET issue in memory, and touches deployed frontend code) — flagged to Ryan instead. End-to-end tested (`insert_weekly_review` smoke-tested and cleaned up; timer confirmed via `systemctl list-timers` to fire 2026-07-27).
+
+---
+
+### GAP-82: `catws-discovery.timer` ran every weekday despite its own description saying "Weekly ... Monday"  ← NEW / LOW
+
+`OnCalendar=Mon..Fri 07:00:00` directly contradicted the unit's own `Description=... Weekly watchlist discovery (Monday 7:00 AM CT)`. Unknown how long this had been the case — found 2026-07-20 during the same audit as GAP-81.
+
+**Resolved (2026-07-20):** Changed to `OnCalendar=Mon 07:00:00`, `daemon-reload` + `restart`. Confirmed via `systemctl --user list-timers` — next run correctly shows 2026-07-27 (next Monday), not tomorrow.
+
+---
+

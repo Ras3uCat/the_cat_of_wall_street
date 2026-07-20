@@ -49,11 +49,11 @@ All items must pass before the first live trade is executed.
 - [ ] Review Section 12 Trigger C stop-loss ladder: +15% gain → move stop to breakeven, +25% → trail 10% below current price, +35% → trail 8% below current price. Never move a stop downward.
 
 ### 7. Risk parameter review
-- [ ] Max single position: 10% of equity
-- [ ] Max portfolio heat: 5.5%
+- [ ] Max single position: 15% of equity
+- [ ] Max portfolio heat: 5-6%
 - [ ] Max day trades: 3 in 5 business days (PDT rule)
 - [ ] Confidence threshold in current VIX regime:
-  - VIX low (<16): 65
+  - VIX low (<16): 60
   - VIX normal (16-20): 65
   - VIX elevated (20-25): 72 (+7)
   - VIX high (>25): NO TRADES

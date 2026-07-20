@@ -53,6 +53,22 @@ ACCOUNT_STATE_STALENESS_MINUTES = 90  # max age of account_state.json before rai
 SIGNAL_CONVERGENCE_THRESHOLD = 2    # minimum signal categories required to proceed to debate
 INSIDER_MIN_TRADE_VALUE = 50_000    # minimum open-market purchase size ($) to qualify as signal
 
+# Canonical skip_reason values (GAP-75 — mirrors SIGNAL_CATEGORY_NAMES below).
+# skip_reason was documented only in a schema comment, never enforced, and
+# drifted into duplicate spellings for the same reason (see migration 008).
+# Enforced at the DB level too via predictions_skip_reason_check.
+SKIP_REASON_VALUES = [
+    "learning_period",
+    "score_below_threshold",
+    "risk_manager_veto",
+    "risk_management_rule",
+    "technical_hard_stop",
+    "adversarial_review_downgrade",
+    "macro_filter",
+    "universe_filter",
+    "manual_skip",
+]
+
 # Canonical signal names for the `signals_fired` field on prediction records.
 # The debate prompt restricts Claude to this closed vocabulary — without it, freeform
 # per-debate naming fragments the signal_accuracy view and historical combo lookups
@@ -96,6 +112,11 @@ DEBATE_MODEL = "claude-sonnet-4-6"
 
 # Number of resolved executed predictions required before cold_start is lifted
 COLD_START_PREDICTION_THRESHOLD = 30
+
+# GAP-74: how many calendar days after a Section 12 exit-decision judgment call
+# (Trigger B/D/E/F/G) to check the ticker's price again for the counterfactual —
+# "what did the market do after this choice, regardless of which path we took."
+EXIT_DECISION_EVAL_DAYS = 10
 
 # Quiver Quantitative — congressional trading signal (free tier, requires account)
 # Sign up at https://www.quiverquant.com/sources/congresstrading

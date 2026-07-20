@@ -26,6 +26,7 @@ from config import (
     DEBATE_MODEL,
     COLD_START_PREDICTION_THRESHOLD,
     SIGNAL_CATEGORY_NAMES,
+    SKIP_REASON_VALUES,
 )
 
 SYSTEM_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "trading_system.md"
@@ -97,6 +98,13 @@ more granular or descriptive names (e.g. write "options_flow", never "options_ca
 any other string permanently fragments that data:
 {json.dumps(SIGNAL_CATEGORY_NAMES)}
 
+If decision is SKIP, `skip_reason` MUST contain exactly one value from this closed vocabulary
+(never a free-text sentence — put explanatory detail in the narrative above, not this field;
+GAP-75 found `rationale` text being written into skip_reason, fragmenting every downstream
+query grouped by it):
+{json.dumps(SKIP_REASON_VALUES)}
+Omit skip_reason entirely (or set it null) when decision is ENTER.
+
 ```json
 {{
   "decision": "ENTER",
@@ -115,6 +123,7 @@ any other string permanently fragments that data:
     "risk_manager_rating": 13
   }},
   "position_size_pct": 2.0,
+  "skip_reason": null,
   "rationale": "One-sentence primary reason for the decision."
 }}
 ```"""
@@ -305,7 +314,17 @@ def main():
                 prediction["skip_reason"] = "learning_period"
         else:
             prediction["approval_status"] = None
-            prediction["skip_reason"] = result.get("rationale", "score below threshold")
+            # GAP-75: must be a canonical value (SKIP_REASON_VALUES), never the
+            # freeform `rationale` sentence — that fragmented every downstream
+            # query grouped by skip_reason (migration 008 backfilled the damage).
+            model_reason = result.get("skip_reason")
+            if model_reason in SKIP_REASON_VALUES:
+                prediction["skip_reason"] = model_reason
+            else:
+                if model_reason:
+                    print(f"[{ticker}] Non-canonical skip_reason {model_reason!r} from model — "
+                          f"falling back to 'score_below_threshold'")
+                prediction["skip_reason"] = "score_below_threshold"
 
         ok = db.insert_prediction(prediction)
         status = "logged" if ok else "log FAILED"

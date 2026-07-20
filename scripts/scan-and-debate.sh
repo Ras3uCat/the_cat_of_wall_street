@@ -34,6 +34,13 @@ echo "[$(date)] Scan complete. Starting debate..."
 # read it here instead of hardcoding a second copy that can drift out of sync.
 SIGNAL_NAMES=$("$PYTHON" -c "import sys; sys.path.insert(0,'system/data'); from config import SIGNAL_CATEGORY_NAMES; import json; print(json.dumps(SIGNAL_CATEGORY_NAMES))")
 
+# Same for skip_reason (GAP-75) — this prompt used to hardcode a mis-spelled
+# example ('score below threshold', no underscore) directly in its own text,
+# which is exactly what got typed into ~50 real predictions rows before the
+# fragmentation was caught and backfilled (migration 008). Read from the same
+# source of truth as everything else instead of hand-typing it again.
+SKIP_REASON_NAMES=$("$PYTHON" -c "import sys; sys.path.insert(0,'system/data'); from config import SKIP_REASON_VALUES; import json; print(json.dumps(SKIP_REASON_VALUES))")
+
 DEBATE_PROMPT="This is an automated post-scan debate session for the $SESSION_TYPE scan.
 
 This may be a retry after an earlier attempt today failed partway through (e.g. a Claude
@@ -49,7 +56,11 @@ Follow the instructions in CLAUDE.md and trading_system.md exactly.
 Your tasks:
 1. Read system/prompts/trading_system.md (CLAUDE.md requires this first)
 2. Read the scan packet at the path above
-3. Run the full 7-agent debate for every ticker where proceed_to_debate=true
+3. Run the full 7-agent debate for every ticker where proceed_to_debate=true — this now starts
+   with the PRE-DEBATE HISTORICAL CONTEXT step (GAP-80, top of Section 3) before Role 1: pull
+   signal_accuracy/sector_status_accuracy for this ticker's setup so the Bull/Bear debaters
+   (Roles 4-5) aren't arguing blind to what's already been learned. Do not skip this because it
+   looks like overhead — it's the actual point of today's fix, not decoration.
 4. Log all predictions to Supabase per Section 5 with these REQUIRED fields:
    - approval_status: set to 'approved' for ENTER decisions; for SKIP decisions set it to
      null (NOT the string 'rejected' — null means 'auto-skipped, no human review', which is
@@ -62,8 +73,17 @@ Your tasks:
      $SIGNAL_NAMES
      Sort the array alphabetically before writing it.
    - debate_narrative: the full reasoning from the 7-agent debate
-5. Send push notifications for any ENTER decisions
-6. Update outcome_summary in the scan record in Supabase
+   - gates: the 'gates' dict per trading_system.md Section 5 Step 2 (Role 7's five binary
+     Gate A-E values) — omit entirely for hard-stop partial scores where Bull/Bear never ran
+   - sector_status: Role 2's in_favor/mixed/out_of_favor/unknown read for this ticker
+   - adversarial_status: 'cleared' or 'challenge' — only for ENTER proposals that reached
+     Role 7 Step 4, otherwise omit
+5. After each insert_prediction call, also call db.log_role_assessments(...) and
+   db.log_signal_strengths(...) per trading_system.md Section 5 Step 2b — this captures
+   Roles 1-3's individual reads and each fired signal's Strong/Moderate/Weak rating, which
+   the confidence score currently only stores summed, not broken out
+6. Send push notifications for any ENTER decisions
+7. Update outcome_summary in the scan record in Supabase
 
 Do NOT touch logs/execution_queue.json yourself — a separate deterministic step
 (reconcile_queue.py, run automatically after this debate session by this same script)
@@ -76,10 +96,16 @@ outcome. For a ticker that would otherwise be an approved ENTER (score passed, R
 approved, no hard-rule veto), set approval_status='approved' and skip_reason='learning_period'
 — still log it and still send the push notification (prefix the rationale with '[LEARNING]').
 For every other SKIP (failed confidence threshold, Risk Manager veto, technical hard stop,
-etc.), use the SPECIFIC reason for that skip (e.g. 'risk_management_rule', 'technical_hard_stop',
-'score below threshold') — do NOT overwrite it with 'learning_period'; that field must reflect
-why the debate actually rejected the trade, independent of whether execution is currently
-allowed.
+etc.), skip_reason MUST be exactly one value from this closed vocabulary — never a free-text
+sentence or paraphrase, and never the debate's rationale text (GAP-75: that fragmented every
+downstream query grouped by this field, since 'score below threshold', 'confidence_below_threshold',
+and 'score_below_threshold' all meant the same thing but never matched each other). Put any
+event-specific detail (e.g. which macro event, which specific hard rule) in debate_narrative
+instead, never concatenated into this field:
+$SKIP_REASON_NAMES
+Do NOT overwrite it with 'learning_period' unless execution is actually what's being blocked;
+that field must reflect why the debate actually rejected the trade, independent of whether
+execution is currently allowed.
 No Robinhood MCP — this is data+debate only, no trade execution."
 
 attempt=1
