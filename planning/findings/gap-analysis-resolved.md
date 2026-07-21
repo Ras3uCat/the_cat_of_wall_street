@@ -879,3 +879,13 @@ Fixing it doesn't touch the deployed frontend at all — the real endpoint contr
 
 ---
 
+### GAP-62 (resolved) + GAP-84: No per-ticker or VIX-regime-conditional accuracy tracking  ← LOW/MEDIUM
+
+GAP-62 was already on record as open-but-not-urgent: "no per-ticker accuracy rollup anywhere in the pipeline... most watchlist tickers have well under 30 resolved predictions... revisit once each ticker has enough history." Found alongside it while responding to Ryan's "make sure everything we do is being tracked" (2026-07-20): `market_regime` (VIX regime at prediction time) has been a column on `predictions` since the original schema, but nothing ever grouped on it — Section 8's monthly report template has had a "REGIME ANALYSIS: Best regime / Worst regime" section with no query behind it the entire time.
+
+GAP-75's resolution surge earlier the same day (148 predictions resolved) made GAP-62 concretely actionable for the first time: several tickers now clear a 10-observation floor with real spread — BAH 87.5% (16 resolved), SAIC 90.9% (11 resolved) vs. PANW 45.8% (24 resolved), AMD 41.7% (12 resolved), and **LMT at 9.1% (11 resolved)** — the latter directly corroborating a standing observation (tracked outside this file, in Claude's session memory) about stale/recycled DOE and NASA gov-contract signals resurfacing as "fresh" for LMT across multiple debates.
+
+**Resolved (2026-07-20):** Migration 014 adds `ticker_accuracy` and `regime_accuracy` — both pure additive views over columns that already existed (`ticker`, `market_regime`), no new table/column needed. Same `insufficient_data` (<10 resolved) convention as every other accuracy view in this schema. Wired into Section 7's weekly query (steps 6-7: flag ticker removal candidates per GAP-62's original fix option 1, and check whether one VIX regime is meaningfully underperforming) and Section 8's monthly report template (TICKER ACCURACY + REGIME ANALYSIS sections now have real queries behind them instead of unstructured placeholders). First real read: normal-VIX-regime predictions hit 60.2% accuracy (113 resolved) vs. low-VIX-regime's 48.6% (37 resolved) — the system is currently performing meaningfully differently by regime, which the blanket VIX-threshold table doesn't account for. Ryan still approves any actual watchlist removal manually, consistent with the existing rule — these views only surface candidates.
+
+---
+

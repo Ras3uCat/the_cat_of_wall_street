@@ -21,8 +21,8 @@ Your tasks:
 1. Read system/prompts/trading_system.md (CLAUDE.md requires this first)
 2. Run Section 7 — Weekly Self-Improvement Protocol in full: the query (now covering
    signal_accuracy, agent_accuracy, confidence_score_calibration, exit_decision_accuracy,
-   role_accuracy, gate_accuracy, sector_status_accuracy, signal_strength_accuracy, and
-   adversarial_reviewer_accuracy) and all 9 review steps.
+   role_accuracy, gate_accuracy, sector_status_accuracy, signal_strength_accuracy,
+   adversarial_reviewer_accuracy, ticker_accuracy, and regime_accuracy) and all 11 review steps.
 3. Write the full findings and any draft recommendations to Supabase via
    db.insert_weekly_review(week_of='$TODAY', summary='...') — the summary must be a complete,
    readable report (not a one-liner), since this is the only durable record of this review.

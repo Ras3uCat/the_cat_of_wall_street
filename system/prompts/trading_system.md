@@ -680,6 +680,12 @@ print(json.dumps(client.table('signal_strength_accuracy').select('*').execute().
 
 print('=== ADVERSARIAL REVIEWER ACCURACY (GAP-79) ===')
 print(json.dumps(client.table('adversarial_reviewer_accuracy').select('*').execute().data, indent=2))
+
+print('=== TICKER ACCURACY — per-ticker win rate (GAP-62/84) ===')
+print(json.dumps(client.table('ticker_accuracy').select('*').execute().data, indent=2))
+
+print('=== REGIME ACCURACY — VIX regime (GAP-84) ===')
+print(json.dumps(client.table('regime_accuracy').select('*').execute().data, indent=2))
 "
 ```
 
@@ -689,10 +695,12 @@ Review the output and:
 3. Check `confidence_score_calibration` — if high-confidence bands are not outperforming lower bands, the scoring model needs review
 4. Check `exit_decision_accuracy` per trigger+choice (once past `insufficient_data`) — e.g. does `trigger_b_target_hit` / `hold_and_trail` show a positive `avg_move_after_decision_pct` (holding was rewarded) or negative (should be taking the win)? Same read for `trigger_d_timeframe_expiry` extends.
 5. Check `role_accuracy`, `gate_accuracy`, `sector_status_accuracy`, `signal_strength_accuracy`, `adversarial_reviewer_accuracy` (once past `insufficient_data`) — which individual roles/gates/signal-strength ratings actually predict outcomes vs. which are noise in the scoring formula? Is the Adversarial Reviewer's CHALLENGE catching real problems, or just docking good trades?
-6. Draft structured weight-change recommendations
-7. **Present recommendations to Ryan. Do not apply any changes until explicitly approved.**
-8. Write the full findings + recommendations to Supabase: `db.insert_weekly_review(week_of='YYYY-MM-DD', summary='...')` (week_of = this Monday's date)
-9. Send a push notification so Ryan knows a review is ready — same endpoint as prediction notifications, but this isn't tied to one ticker/prediction, so use a sentinel: `{"ticker": "WEEKLY_REVIEW", "prediction_id": "weekly_review_YYYYMMDD"}`. (Verified against the deployed `/api/notify` route: it requires truthy `prediction_id` AND `ticker`, nothing else — this satisfies that contract without implying a real prediction exists.)
+6. Check `ticker_accuracy` (once past `insufficient_data`, 10+ resolved) — flag any ticker below 50% direction accuracy as a watchlist removal candidate per [[GAP-62]]; note standout performers too (don't just look for problems)
+7. Check `regime_accuracy` — does the system actually perform differently by VIX regime? If one regime is meaningfully underperforming, that's a candidate for a tighter threshold in that regime specifically, not just the existing blanket VIX-threshold table
+8. Draft structured weight-change and/or watchlist-removal recommendations
+9. **Present recommendations to Ryan. Do not apply any changes until explicitly approved** — this includes watchlist removals: `ticker_accuracy` surfaces candidates, it does not remove them.
+10. Write the full findings + recommendations to Supabase: `db.insert_weekly_review(week_of='YYYY-MM-DD', summary='...')` (week_of = this Monday's date)
+11. Send a push notification so Ryan knows a review is ready — same endpoint as prediction notifications, but this isn't tied to one ticker/prediction, so use a sentinel: `{"ticker": "WEEKLY_REVIEW", "prediction_id": "weekly_review_YYYYMMDD"}`. (Verified against the deployed `/api/notify` route: it requires truthy `prediction_id` AND `ticker`, nothing else — this satisfies that contract without implying a real prediction exists.)
 
 ---
 
@@ -770,9 +778,13 @@ BEST SIGNAL COMBOS    (≥10 resolved, accuracy > 65%)
 WORST SIGNAL COMBOS   (accuracy < 50%, insufficient_data = false)
   [combo]: X% — candidate for removal
 
-REGIME ANALYSIS
-  Best regime:         [VIX regime + conditions]
-  Worst regime:        [VIX regime + conditions]
+TICKER ACCURACY (GAP-62/84 — query `ticker_accuracy`, ≥10 resolved)
+  Best:  [ticker]: X% over N trades
+  Worst: [ticker]: X% over N trades — flag as watchlist removal candidate, Ryan approves
+
+REGIME ANALYSIS (query `regime_accuracy`, ≥10 resolved per regime)
+  Best regime:         [VIX regime]: X% accuracy over N trades
+  Worst regime:        [VIX regime]: X% accuracy over N trades
 
 CONFIDENCE CALIBRATION
   High confidence (80+):    X% win rate
