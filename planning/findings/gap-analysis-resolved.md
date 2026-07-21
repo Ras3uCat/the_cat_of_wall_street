@@ -889,3 +889,13 @@ GAP-75's resolution surge earlier the same day (148 predictions resolved) made G
 
 ---
 
+### GAP-85: `wash_sale_check` blocked 19 of 26 watchlist tickers on counterfactual, never-executed resolutions — a regression from GAP-75's own fix the day before  ← NEW / HIGH (self-introduced)
+
+Discovered 2026-07-21 while checking `logs/scan.log` for the 2026-07-20 midday scan. The scan's INELIGIBLE list showed 19 of 26 watchlist tickers blocked with `Sold at loss within 30 days (2026-07-20) — wash sale rule applies` — a real IRS concept that should only ever fire for actual sales of actual shares. No trades have ever been executed in this project (learning period, executed=0 confirmed repeatedly). Root cause: `wash_sale_check` (the SQL function, `system/schemas/supabase_schema.sql`) filtered on `resolved = true` but never `executed = true`. GAP-75 (2026-07-20, same day) had deliberately widened `resolve.py`'s counterfactual pass so unexecuted predictions get resolved against real price data for calibration purposes — the right fix for learning, but it meant a counterfactual prediction that resolved wrong-direction now reads to `wash_sale_check` exactly like a genuine loss sale, since the function never distinguished the two. Confirmed via direct query: `pred_20260715_018` (JPM, `executed=false`, `resolved=true`, `exit_date=2026-07-20`, wrong-direction) was the literal row driving the JPM block.
+
+This is a previously-unforeseen side effect of GAP-75's own fix, not a pre-existing latent bug — worth naming as such rather than folding it in as "just another gap," since it's the kind of regression risk that comes with widening a resolution pass without auditing every downstream consumer of `resolved = true`.
+
+**Resolved (2026-07-21):** Migration 015 adds `executed = true` to the SQL function's `where` clause. Verified via direct calls: JPM/SAIC/AMD/BAH (all previously false-flagged) now correctly return `ok: True`. Also verified the fix doesn't overcorrect — temporarily flipped `pred_20260715_018.executed` to `True` (simulating a real trade), confirmed `wash_sale_check('JPM')` correctly returned `ok: False` with the loss-sale date, then reverted the flag. `supabase_schema.sql` intentionally left unsynced, consistent with existing project convention — it was already left stale after GAP-75's `confidence_score_calibration` fix (migration 008), so migrations are the authoritative running log, not the base file.
+
+---
+
