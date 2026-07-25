@@ -580,3 +580,30 @@ def get_price_history(ticker: str, days: int = 35) -> list[dict]:
     except Exception as e:
         print(f"[db] get_price_history failed: {e}")
         return []
+
+
+def get_price_history_range(ticker: str, start_date: str, end_date: str) -> list[dict]:
+    """
+    Fetch OHLCV rows for a ticker between two absolute dates (inclusive), ascending.
+    Used by resolve.py to walk the daily bar path between entry and exit for
+    max-favorable/max-adverse excursion — get_price_history's "most recent N
+    rows ending now" window can't target an arbitrary past date range.
+    Returns [] if Supabase is not configured or no rows fall in range.
+    """
+    client = get_client()
+    if not client:
+        return []
+    try:
+        result = (
+            client.table("price_history")
+            .select("date,open,high,low,close,volume")
+            .eq("ticker", ticker.upper())
+            .gte("date", start_date)
+            .lte("date", end_date)
+            .order("date", desc=False)
+            .execute()
+        )
+        return result.data or []
+    except Exception as e:
+        print(f"[db] get_price_history_range failed: {e}")
+        return []

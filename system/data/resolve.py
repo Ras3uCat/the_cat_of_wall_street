@@ -24,7 +24,7 @@ load_dotenv()
 
 import db
 import fetch_market_data
-from config import PRICE_STALENESS_MAX_DAYS
+from config import PRICE_STALENESS_MAX_DAYS, DEFAULT_STOP_LOSS_PCT
 
 
 def _fetch_close(ticker: str, as_of: str) -> tuple[float, str] | tuple[None, None]:
@@ -77,6 +77,72 @@ def _fetch_close(ticker: str, as_of: str) -> tuple[float, str] | tuple[None, Non
     except Exception as e:
         print(f"  [fetch_market_data] price fetch failed for {ticker} on {as_of}: {e}")
         return None, None
+
+
+def _excursion_and_stop(ticker: str, entry_date: str, exit_date: str,
+                         entry_price: float, direction: str) -> tuple[float, float, bool] | tuple[None, None, None]:
+    """
+    Walk the daily OHLC path from entry to exit and compute the best/worst move
+    reached along the way (backlog item 06 — resolve.py previously only ever
+    scored the close-to-close move, which can't tell a real directional win
+    from a win-on-paper that a live stop would have converted to a loss).
+
+    Both values are magnitudes (>=0). would_have_stopped is a conservative
+    daily-bar approximation, not true intraday sequencing — it can't tell
+    whether the adverse excursion happened before or after the favorable one
+    on the same day. Returns (None, None, None) if no bar data is available
+    for the window (price_history only backfills once a ticker has been
+    through a daily scan; older/off-watchlist windows may be empty).
+    """
+    rows = db.get_price_history_range(ticker, entry_date, exit_date)
+    highs = [r["high"] for r in rows if r.get("high") is not None]
+    lows = [r["low"] for r in rows if r.get("low") is not None]
+    if not highs or not lows:
+        return None, None, None
+
+    if direction == "down":
+        favorable = max((entry_price - low) / entry_price * 100 for low in lows)
+        adverse = max((high - entry_price) / entry_price * 100 for high in highs)
+    else:
+        favorable = max((high - entry_price) / entry_price * 100 for high in highs)
+        adverse = max((entry_price - low) / entry_price * 100 for low in lows)
+
+    favorable = round(max(favorable, 0.0), 2)
+    adverse = round(max(adverse, 0.0), 2)
+    return favorable, adverse, adverse >= DEFAULT_STOP_LOSS_PCT
+
+
+def _spy_excess_move(entry_date: str, exit_date: str, actual_move_pct: float) -> tuple[float, float] | tuple[None, None]:
+    """
+    SPY move over the same window, and this prediction's move in excess of it.
+    A correct "up" call during a broad rally is beta, not signal edge — this
+    is the per-prediction alpha attribution the strategy doc's monthly
+    portfolio-level benchmark doesn't give you (backlog item 06).
+    Reuses _fetch_close so the first lookup for a given date backfills
+    Supabase's price_history for SPY, same as any watchlist ticker.
+    """
+    spy_entry, _ = _fetch_close("SPY", entry_date)
+    spy_exit, _ = _fetch_close("SPY", exit_date)
+    if spy_entry is None or spy_exit is None:
+        return None, None
+    spy_move = (spy_exit - spy_entry) / spy_entry * 100
+    return round(spy_move, 2), round(actual_move_pct - spy_move, 2)
+
+
+def _fidelity_fields(ticker: str, entry_date: str, exit_date: str, entry_price: float,
+                      direction: str, actual_move_pct: float) -> dict:
+    """Best-effort extra fields for a resolution dict — omitted (not faked) when data is missing."""
+    fields = {}
+    favorable, adverse, stopped = _excursion_and_stop(ticker, entry_date, exit_date, entry_price, direction)
+    if favorable is not None:
+        fields["max_favorable_pct"] = favorable
+        fields["max_adverse_pct"] = adverse
+        fields["would_have_stopped"] = stopped
+    spy_move, excess_move = _spy_excess_move(entry_date, exit_date, actual_move_pct)
+    if spy_move is not None:
+        fields["spy_move_pct"] = spy_move
+        fields["excess_move_pct"] = excess_move
+    return fields
 
 
 def _accuracy_score(direction_correct: bool, predicted_move: float, actual_move: float) -> int:
@@ -167,6 +233,9 @@ def run() -> dict:
             "lessons": _lessons(ticker, p.get("approval_status", "ENTER"), predicted_dir,
                                 predicted_move, actual_move, direction_correct),
         }
+        resolution.update(_fidelity_fields(
+            ticker, entry_date.isoformat(), exit_date.isoformat(), entry_price, predicted_dir, actual_move
+        ))
 
         ok = db.resolve_prediction(p["id"], resolution)
         if ok:
@@ -251,6 +320,9 @@ def run() -> dict:
             "lessons": _lessons(ticker, f"SKIP/{p.get('skip_reason') or 'unknown'}", predicted_dir,
                                 predicted_move, actual_move, direction_correct),
         }
+        resolution.update(_fidelity_fields(
+            ticker, entry_price_date, exit_date.isoformat(), entry_price, predicted_dir, actual_move
+        ))
 
         ok = db.resolve_prediction(p["id"], resolution)
         if ok:

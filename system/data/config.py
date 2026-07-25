@@ -13,7 +13,7 @@ PREDICTIONS_DIR = PROJECT_ROOT / "logs" / "predictions"
 CACHE_TTL = {
     "market":    600,     # 10 min — intraday price data
     "technicals": 600,   # 10 min — same as market; named separately for clarity
-    "options":   1800,    # 30 min — options chain
+    "options":   1800,    # 30 min — options chain (also used for the yahoo_crumb cookie/crumb cache)
     "insider":   14400,   # 4 hr  — EDGAR Form 4 (not real-time)
     "contracts": 86400,   # 24 hr — USASpending.gov
     "filings":   14400,   # 4 hr  — EDGAR 8-K
