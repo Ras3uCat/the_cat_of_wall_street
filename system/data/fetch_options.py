@@ -11,6 +11,7 @@ data service such as Unusual Whales. This is noted in every output.
 """
 import argparse
 import json
+import logging
 import os
 import random
 import subprocess
@@ -22,6 +23,8 @@ from datetime import date, datetime, timezone
 import yfinance as yf
 import cache
 from config import OPTIONS_UNUSUAL_VOLUME_RATIO, OPTIONS_TOP_GAMMA_LEVELS
+
+log = logging.getLogger(__name__)
 
 _MAX_RETRIES = 3
 _BASE_DELAY = 2  # seconds; doubles each retry
@@ -149,6 +152,7 @@ def _get_yahoo_crumb() -> tuple[str, str] | tuple[None, None]:
                 None,
             )
         if not cookie_line:
+            log.warning("Yahoo crumb: no cookie set by fc.yahoo.com — cookie jar was empty")
             return None, None
         parts = cookie_line.split("\t")
         cookie_header = f"{parts[-2]}={parts[-1]}"
@@ -161,11 +165,13 @@ def _get_yahoo_crumb() -> tuple[str, str] | tuple[None, None]:
         )
         crumb = crumb_resp.stdout.strip()
         if not crumb or " " in crumb or "{" in crumb:
+            log.warning("Yahoo crumb: getcrumb response looked invalid: %r", crumb[:200])
             return None, None
 
         cache.set("yahoo_crumb", {"cookie": cookie_header, "crumb": crumb})
         return cookie_header, crumb
-    except Exception:
+    except Exception as e:
+        log.warning("Yahoo crumb: cookie/crumb handshake raised %s: %s", type(e).__name__, e)
         return None, None
     finally:
         if jar_path:

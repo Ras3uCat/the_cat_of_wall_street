@@ -4,6 +4,7 @@
 #   session_type: pre_market | midday | pm_window
 
 set -e
+set -o pipefail
 
 SESSION_TYPE="${1:-pre_market}"
 PROJECT="/home/ryan/Documents/business/the_cat_of_wall_street"
@@ -17,9 +18,16 @@ SCAN_ID="scan_${TODAY}_${SESSION_TYPE}"
 # limit · resets Npm") is the main failure mode this guards against (GAP-60). Limits
 # reset on the order of tens of minutes to a few hours, so we retry a bounded number of
 # times with a long enough gap to plausibly clear, then give up and let systemd's
-# OnFailure= push notification (already confirmed working) alert Ryan for manual follow-up.
+# OnFailure= push notification alert Ryan for manual follow-up.
+#
+# A *monthly* spend limit ("You've hit your monthly spend limit") is a different failure
+# mode that these retries can't help with — it won't clear for the rest of the billing
+# cycle, so burning 3 x 20min here (2026-07-24: all 3 sessions did this, wasting ~1h each
+# before failing) only delays the alert. MONTHLY_LIMIT_PATTERN below short-circuits straight
+# to failure+notify on that specific message instead of retrying blind.
 MAX_ATTEMPTS=3
 RETRY_DELAY_SECONDS=1200  # 20 min
+MONTHLY_LIMIT_PATTERN="monthly spend limit"
 
 echo "[$(date)] Starting $SESSION_TYPE scan..."
 cd "$PROJECT"
@@ -110,10 +118,18 @@ No Robinhood MCP — this is data+debate only, no trade execution."
 
 attempt=1
 while true; do
-  if "$CLAUDE" -p --dangerously-skip-permissions --no-session-persistence "$DEBATE_PROMPT"; then
+  CLAUDE_OUTPUT_FILE=$(mktemp)
+  if "$CLAUDE" -p --dangerously-skip-permissions --no-session-persistence "$DEBATE_PROMPT" 2>&1 | tee "$CLAUDE_OUTPUT_FILE"; then
     echo "[$(date)] Debate session complete (attempt $attempt)."
+    rm -f "$CLAUDE_OUTPUT_FILE"
     break
   fi
+  if grep -qi "$MONTHLY_LIMIT_PATTERN" "$CLAUDE_OUTPUT_FILE"; then
+    echo "[$(date)] Debate hit the Claude Code monthly spend limit on attempt $attempt — retrying won't help until the billing cycle resets or the limit is raised at claude.ai/settings/usage. Failing immediately; systemd OnFailure= will notify Ryan."
+    rm -f "$CLAUDE_OUTPUT_FILE"
+    exit 1
+  fi
+  rm -f "$CLAUDE_OUTPUT_FILE"
   if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
     echo "[$(date)] Debate failed after $attempt attempt(s) — giving up. systemd OnFailure= will notify Ryan."
     exit 1
