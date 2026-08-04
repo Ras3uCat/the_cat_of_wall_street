@@ -12,7 +12,9 @@ CLAUDE="/home/ryan/.nvm/versions/node/v20.19.6/bin/claude"
 PYTHON="$PROJECT/.venv/bin/python"
 TODAY=$(date +%Y-%m-%d)
 SCAN_FILE="$PROJECT/logs/predictions/scan_${TODAY}_${SESSION_TYPE}.json"
+DEBATE_SCAN_FILE="$PROJECT/logs/predictions/scan_${TODAY}_${SESSION_TYPE}_debate.json"
 SCAN_ID="scan_${TODAY}_${SESSION_TYPE}"
+DEBATE_MODEL="sonnet"
 
 # Retry knobs — a Claude Code subscription session-limit hit ("You've hit your session
 # limit · resets Npm") is the main failure mode this guards against (GAP-60). Limits
@@ -57,13 +59,21 @@ scan_id='$SCAN_ID' that are already logged, and skip re-debating those tickers �
 the debate for proceed_to_debate=true tickers not already present under this scan_id. This
 prevents duplicate prediction rows from a retried run.
 
-The data scan has just completed. The scan packet is at:
-$SCAN_FILE
+The data scan has just completed. The debate-ready scan packet (already filtered
+to proceed_to_debate=true tickers, with raw price_history stripped since
+signals.technicals already carries the computed indicators derived from it) is at:
+$DEBATE_SCAN_FILE
+
+The full unfiltered packet (all watchlist tickers, incl. why non-candidates were
+skipped, under summary.ineligible_tickers / summary.no_signal_convergence) is at:
+$SCAN_FILE — only read this one if you need context on a ticker that did NOT
+proceed to debate; do not read it wholesale, that defeats the point of the
+trimmed packet above.
 
 Follow the instructions in CLAUDE.md and trading_system.md exactly.
 Your tasks:
 1. Read system/prompts/trading_system.md (CLAUDE.md requires this first)
-2. Read the scan packet at the path above
+2. Read the debate-ready scan packet at the path above
 3. Run the full 7-agent debate for every ticker where proceed_to_debate=true — this now starts
    with the PRE-DEBATE HISTORICAL CONTEXT step (GAP-80, top of Section 3) before Role 1: pull
    signal_accuracy/sector_status_accuracy for this ticker's setup so the Bull/Bear debaters
@@ -119,7 +129,7 @@ No Robinhood MCP — this is data+debate only, no trade execution."
 attempt=1
 while true; do
   CLAUDE_OUTPUT_FILE=$(mktemp)
-  if "$CLAUDE" -p --dangerously-skip-permissions --no-session-persistence "$DEBATE_PROMPT" 2>&1 | tee "$CLAUDE_OUTPUT_FILE"; then
+  if "$CLAUDE" -p --model "$DEBATE_MODEL" --dangerously-skip-permissions --no-session-persistence "$DEBATE_PROMPT" 2>&1 | tee "$CLAUDE_OUTPUT_FILE"; then
     echo "[$(date)] Debate session complete (attempt $attempt)."
     rm -f "$CLAUDE_OUTPUT_FILE"
     break

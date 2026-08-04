@@ -9,6 +9,7 @@ Usage:
 Output:
   Prints summary to stdout.
   Writes full packet to logs/predictions/scan_<date>.json
+  Writes a trimmed debate-only packet to logs/predictions/scan_<date>_debate.json
   Upserts scan + signals to Supabase (if configured in .env)
 """
 import argparse
@@ -161,6 +162,24 @@ def _scan_ticker(ticker: str) -> dict:
     }
 
 
+def _build_debate_packet(packet: dict) -> dict:
+    """Trimmed view for the debate agent: only tickers actually proceeding to
+    debate, with raw price_history dropped from market_data — technicals
+    already carries the computed indicators derived from those bars, so the
+    debate never needs the raw daily OHLCV series. Cuts the packet the debate
+    session reads by ~85% (verified 2026-08-04: 693KB -> ~104KB on a typical
+    26-ticker/8-candidate scan)."""
+    debate_tickers = []
+    for r in packet["tickers"]:
+        if not r.get("proceed_to_debate"):
+            continue
+        r = json.loads(json.dumps(r, default=str))
+        r.get("signals", {}).get("market_data", {}).pop("price_history", None)
+        debate_tickers.append(r)
+
+    return {**{k: v for k, v in packet.items() if k != "tickers"}, "tickers": debate_tickers}
+
+
 def run(watchlist: list[str]) -> dict:
     # Step 1: Macro gate — if macro is not go, halt
     macro = fetch_macro.fetch()
@@ -236,6 +255,9 @@ def run(watchlist: list[str]) -> dict:
     PREDICTIONS_DIR.mkdir(parents=True, exist_ok=True)
     out_path = PREDICTIONS_DIR / f"scan_{today}_{session_type}.json"
     out_path.write_text(json.dumps(packet, indent=2, default=str))
+
+    debate_path = PREDICTIONS_DIR / f"scan_{today}_{session_type}_debate.json"
+    debate_path.write_text(json.dumps(_build_debate_packet(packet), indent=2, default=str))
 
     # Sync to Supabase if configured
     if db.is_configured():
