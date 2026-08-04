@@ -9,6 +9,7 @@ set -e
 
 PROJECT="/home/ryan/Documents/business/the_cat_of_wall_street"
 CLAUDE="/home/ryan/.nvm/versions/node/v20.19.6/bin/claude"
+REVIEW_MODEL="sonnet"
 TODAY=$(date +%Y-%m-%d)
 
 echo "[$(date)] Starting weekly self-improvement review..."
@@ -33,6 +34,6 @@ Your tasks:
 
 This is a read+report session — no trades, no config edits, no Robinhood MCP."
 
-"$CLAUDE" -p --dangerously-skip-permissions --no-session-persistence "$REVIEW_PROMPT"
+"$CLAUDE" -p --model "$REVIEW_MODEL" --dangerously-skip-permissions --no-session-persistence "$REVIEW_PROMPT"
 
 echo "[$(date)] Weekly review complete."

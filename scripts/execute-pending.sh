@@ -15,6 +15,7 @@ set -e
 SESSION_TYPE="${1:-pre_market}"
 PROJECT="/home/ryan/Documents/business/the_cat_of_wall_street"
 CLAUDE="/home/ryan/.nvm/versions/node/v20.19.6/bin/claude"
+EXECUTE_MODEL="sonnet"
 TODAY=$(date +%Y-%m-%d)
 QUEUE_FILE="$PROJECT/logs/execution_queue.json"
 
@@ -22,6 +23,7 @@ echo "[$(date)] Starting execution session ($SESSION_TYPE)..."
 cd "$PROJECT"
 
 "$CLAUDE" -p \
+  --model "$EXECUTE_MODEL" \
   --dangerously-skip-permissions \
   --no-session-persistence \
   "This is an automated trade execution session for the $SESSION_TYPE window on $TODAY.
